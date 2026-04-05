@@ -40,7 +40,7 @@ function FormProcesso({ valores, onChange, erro }) {
         placeholder={placeholder}
         value={valores[id]}
         onChange={(e) => onChange(id, e.target.value)}
-        aria-invalid={id === "nome" && !!erro}
+        aria-invalid={id === "cliente_id" && !!erro}
       />
     </div>
   );
@@ -258,7 +258,7 @@ export default function Processos() {
         </div>
         <Button onClick={abrirNovo}>
           <Plus />
-          Novo Cliente
+          Novo Processo
         </Button>
       </div>
       {/* Busca */}
@@ -375,7 +375,7 @@ export default function Processos() {
       {processos.length > 0 && !carregando && (
         <p className="text-xs text-muted-foreground">
           {processos.length} {processos.length === 1 ? "processo" : "processos"}
-          encontrado {clientes.length === 1 ? "" : "s"}
+          encontrado {processos.length === 1 ? "" : "s"}
         </p>
       )}
 
