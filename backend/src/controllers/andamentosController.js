@@ -1,4 +1,4 @@
-import pool from "../config/db";
+const pool = require("../config/db");
 
 // GET /api/andamentos?processo_id=X
 exports.listarAndamentos = async (req, res, next) => {

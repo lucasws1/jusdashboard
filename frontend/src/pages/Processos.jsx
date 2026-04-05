@@ -13,23 +13,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  listarClientes,
-  criarCliente,
-  atualizarCliente,
-  deletarCliente,
-} from "@/api/clientes";
+  atualizarProcesso,
+  deletarProcesso,
+  listarProcessos,
+} from "@/api/processos";
 
 const CAMPO_VAZIO = {
-  nome: "",
-  cpf_cnpj: "",
-  email: "",
-  telefone: "",
-  endereco: "",
+  cliente_id: "",
+  numero_processo: "",
+  titulo: "",
+  area: "",
+  tipo: "",
+  vara_tribunal: "",
+  status: "",
   observacoes: "",
 };
 
-// ── Formulário reutilizado no modal de criação e edição ──────────────────────
-function FormCliente({ valores, onChange, erro }) {
+// Form para criação ou edição
+function FormProcesso({ valores, onChange, erro }) {
   const campo = (id, label, placeholder, type = "text") => (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
@@ -51,11 +52,17 @@ function FormCliente({ valores, onChange, erro }) {
           {erro}
         </p>
       )}
-      {campo("nome", "Nome *", "Nome completo ou razão social")}
-      {campo("cpf_cnpj", "CPF / CNPJ", "000.000.000-00 ou 00.000.000/0001-00")}
-      {campo("email", "E-mail", "email@exemplo.com", "email")}
-      {campo("telefone", "Telefone", "(11) 99999-9999", "tel")}
-      {campo("endereco", "Endereço", "Rua, número, cidade")}
+      {campo("cliente_id", "Cliente ID *", "ID do Cliente")}
+      {campo(
+        "numero_processo",
+        "Número do Processo",
+        "0000000-00.0000.0.00.0000",
+      )}
+      {campo("titulo", "Título *", "Ex.: Ação Trabalhista Nutrella")}
+      {campo("area", "Área", "Ex.: Cível")}
+      {campo("tipo", "Tipo", "Ex.: Execução")}
+      {campo("vara_tribunal", "Vara / Tribunal", "Ex.: 10a Vara do Trabalho")}
+      {campo("status", "Status", "Ativo, suspenso, arquivado, encerrado")}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="observacoes">Observações</Label>
         <Textarea
@@ -70,36 +77,42 @@ function FormCliente({ valores, onChange, erro }) {
   );
 }
 
-// ── Modal de criação / edição ────────────────────────────────────────────────
-function ModalCliente({ aberto, onFechar, clienteEditando, onSalvar }) {
+// Modal de criação ou edição
+function ModalProcesso({ aberto, onFechar, processoEditando, onSalvar }) {
   const [valores, setValores] = useState(CAMPO_VAZIO);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
 
   useEffect(() => {
     if (aberto) {
-      setValores(clienteEditando ?? CAMPO_VAZIO);
+      setValores(processoEditando ?? CAMPO_VAZIO);
       setErro("");
     }
-  }, [aberto, clienteEditando]);
+  }, [aberto, processoEditando]);
 
   const handleChange = (campo, valor) => {
     setValores((v) => ({ ...v, [campo]: valor }));
-    if (campo === "nome") setErro("");
+    if (campo === "cliente_id") setErro("");
+    else if (campo === "titulo") setErro("");
   };
 
   const handleSalvar = async () => {
-    if (!valores.nome.trim()) {
-      setErro("O campo nome é obrigatório.");
+    if (!valores.cliente_id.trim()) {
+      setErro('O campo "cliente_id" é obrigatório.');
+      return;
+    } else if (!valores.titulo.trim()) {
+      setErro('O campo "titulo" é obrigatório.');
       return;
     }
+
     setSalvando(true);
     setErro("");
+
     try {
       await onSalvar(valores);
       onFechar();
-    } catch (e) {
-      setErro(e.response?.data?.error ?? "Erro ao salvar cliente.");
+    } catch (error) {
+      setErro(error.response?.data?.error || "Erro ao salvar processo.");
     } finally {
       setSalvando(false);
     }
@@ -110,10 +123,10 @@ function ModalCliente({ aberto, onFechar, clienteEditando, onSalvar }) {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {clienteEditando ? "Editar cliente" : "Novo cliente"}
+            {processoEditando ? "Editar processo" : "Novo processo"}
           </DialogTitle>
         </DialogHeader>
-        <FormCliente valores={valores} onChange={handleChange} erro={erro} />
+        <FormProcesso valores={valores} onChange={handleChange} erro={erro} />
         <DialogFooter>
           <Button variant="outline" onClick={onFechar} disabled={salvando}>
             Cancelar
@@ -128,8 +141,8 @@ function ModalCliente({ aberto, onFechar, clienteEditando, onSalvar }) {
   );
 }
 
-// ── Modal de confirmação de exclusão ────────────────────────────────────────
-function ModalConfirmarExclusao({ cliente, onConfirmar, onCancelar }) {
+// Modal de confirmação da exclusão
+function ModalConfirmarExclusao({ processo, onConfirmar, onCancelar }) {
   const [excluindo, setExcluindo] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -138,22 +151,24 @@ function ModalConfirmarExclusao({ cliente, onConfirmar, onCancelar }) {
     setErro("");
     try {
       await onConfirmar();
-    } catch (e) {
-      setErro(e.response?.data?.error ?? "Erro ao excluir cliente.");
+    } catch (error) {
+      setErro(error.response?.data?.error ?? "Erro ao excluir processo.");
       setExcluindo(false);
     }
   };
 
   return (
-    <Dialog open={!!cliente} onOpenChange={(v) => !v && onCancelar()}>
+    <Dialog open={!!processo} onOpenChange={(v) => !v && onCancelar()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Excluir cliente</DialogTitle>
+          <DialogTitle>Excluir processo</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
             Tem certeza que deseja excluir{" "}
-            <span className="font-medium text-foreground">{cliente?.nome}</span>
+            <span className="font-medium text-foreground">
+              {processo?.titulo}
+            </span>
             ? Essa ação não pode ser desfeita.
           </p>
           {erro && (
@@ -180,17 +195,17 @@ function ModalConfirmarExclusao({ cliente, onConfirmar, onCancelar }) {
   );
 }
 
-// ── Página principal ─────────────────────────────────────────────────────────
-export default function Clientes() {
-  const [clientes, setClientes] = useState([]);
-  const [busca, setBusca] = useState("");
+// Página principal
+export default function Processos() {
+  const [processos, setProcessos] = useState([]);
+  const [busca, setBusca] = useState({ cliente_id: "", status: "" });
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
 
   const {
     aberto: modalAberto,
-    itemEditando: clienteEditando,
-    itemParaExcluir: clienteParaExcluir,
+    itemEditando: processoEditando,
+    itemParaExcluir: processoParaExcluir,
     abrirNovo,
     abrirEdicao,
     fechar: fecharModal,
@@ -198,14 +213,14 @@ export default function Clientes() {
     cancelarExclusao,
   } = useModal();
 
-  const carregar = useCallback(async (termoBusca = "") => {
+  const carregar = useCallback(async (termosBusca = "") => {
     setCarregando(true);
     setErroLista("");
     try {
-      const { data } = await listarClientes(termoBusca);
-      setClientes(data);
+      const { data } = await listarProcessos(termosBusca);
+      setProcessos(data);
     } catch (error) {
-      setErroLista("Não foi possível carregar os clientes.");
+      setErroLista("Não foi possível carregar os processos.");
     } finally {
       setCarregando(false);
     }
@@ -217,16 +232,16 @@ export default function Clientes() {
   }, [busca, carregar]);
 
   const handleSalvar = async (dados) => {
-    if (clienteEditando) {
-      await atualizarCliente(clienteEditando.id, dados);
+    if (processoEditando) {
+      await atualizarProcesso(processoEditando.id, dados);
     } else {
-      await criarCliente(dados);
+      await criarProcesso(dados);
     }
     await carregar(busca);
   };
 
   const handleExcluir = async () => {
-    await deletarCliente(clienteParaExcluir.id);
+    await deletarProcesso(processoParaExcluir.id);
     cancelarExclusao();
     await carregar(busca);
   };
@@ -236,23 +251,22 @@ export default function Clientes() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Clientes</h1>
+          <h1 className="text-xl font-semibold">Processos</h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie os clientes do escritório.
+            Gerencie os processos do escritório.
           </p>
         </div>
         <Button onClick={abrirNovo}>
           <Plus />
-          Novo cliente
+          Novo Cliente
         </Button>
       </div>
-
       {/* Busca */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
           className="pl-9"
-          placeholder="Buscar por nome, CPF/CNPJ ou e-mail..."
+          placeholder="Buscar por ID do cliente e/ou status do processo"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
@@ -263,10 +277,13 @@ export default function Clientes() {
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-muted-foreground">
             <tr>
-              <th className="text-left px-4 py-3 font-medium">Nome</th>
-              <th className="text-left px-4 py-3 font-medium">CPF / CNPJ</th>
-              <th className="text-left px-4 py-3 font-medium">E-mail</th>
-              <th className="text-left px-4 py-3 font-medium">Telefone</th>
+              <th className="text-left px-4 py-3 font-medium">Cliente ID</th>
+              <th className="text-left px-4 py-3 font-medium">Número</th>
+              <th className="text-left px-4 py-3 font-medium">Título</th>
+              <th className="text-left px-4 py-3 font-medium">Área</th>
+              <th className="text-left px-4 py-3 font-medium">Tipo</th>
+              <th className="text-left px-4 py-3 font-medium">Vara/Tribunal</th>
+              <th className="text-left px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -274,7 +291,7 @@ export default function Clientes() {
             {carregando && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={8}
                   className="px-4 py-10 text-center text-muted-foreground"
                 >
                   <Loader2 className="animate-spin mx-auto size-5" />
@@ -282,26 +299,25 @@ export default function Clientes() {
               </tr>
             )}
 
-            {!carregando && erroLista && (
+            {carregando && erroLista && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={8}
                   className="px-4 py-10 text-center text-destructive"
                 >
                   {erroLista}
                 </td>
               </tr>
             )}
-
-            {!carregando && !erroLista && clientes.length === 0 && (
+            {!carregando && !erroLista && processos.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center">
+                <td colSpan={8} className="px-4 py-12 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <UserX className="size-8" />
                     <span className="text-sm">
                       {busca
-                        ? "Nenhum cliente encontrado para essa busca."
-                        : "Nenhum cliente cadastrado ainda."}
+                        ? "Nenhum processo encontrado para essa busca."
+                        : "Nenhum processo cadastrado ainda."}
                     </span>
                   </div>
                 </td>
@@ -309,27 +325,32 @@ export default function Clientes() {
             )}
 
             {!carregando &&
-              clientes.map((c) => (
+              processos.map((p) => (
                 <tr
-                  key={c.id}
+                  key={p.id}
                   className="border-t border-border hover:bg-muted/30 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium">{c.nome}</td>
+                  <td className="px-4 py-3 font-medium">{p.cliente_id}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {c.cpf_cnpj || "—"}
+                    {p.numero_processo}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {c.email || "—"}
+                    {p.titulo}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{p.area}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{p.tipo}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {p.vara_tribunal}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {c.telefone || "—"}
+                    {p.status}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => abrirEdicao(c)}
+                        onClick={() => abrirEdicao(p)}
                         title="Editar"
                       >
                         <Pencil />
@@ -337,7 +358,7 @@ export default function Clientes() {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => confirmarExclusao(c)}
+                        onClick={() => confirmarExclusao(p)}
                         title="Excluir"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
@@ -351,23 +372,23 @@ export default function Clientes() {
         </table>
       </div>
 
-      {clientes.length > 0 && !carregando && (
+      {processos.length > 0 && !carregando && (
         <p className="text-xs text-muted-foreground">
-          {clientes.length} {clientes.length === 1 ? "cliente" : "clientes"}{" "}
-          encontrado
-          {clientes.length === 1 ? "" : "s"}
+          {processos.length} {processos.length === 1 ? "processo" : "processos"}
+          encontrado {clientes.length === 1 ? "" : "s"}
         </p>
       )}
 
       {/* Modais */}
-      <ModalCliente
+      <ModalProcesso
         aberto={modalAberto}
         onFechar={fecharModal}
-        clienteEditando={clienteEditando}
+        processoEditando={processoEditando}
         onSalvar={handleSalvar}
       />
+
       <ModalConfirmarExclusao
-        cliente={clienteParaExcluir}
+        processo={processoParaExcluir}
         onConfirmar={handleExcluir}
         onCancelar={cancelarExclusao}
       />

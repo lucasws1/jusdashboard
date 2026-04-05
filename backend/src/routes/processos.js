@@ -7,3 +7,5 @@ router.get("/:id", ctrl.buscarProcessos);
 router.post("/", ctrl.criarProcesso);
 router.put("/:id", ctrl.atualizarProcesso);
 router.delete("/:id", ctrl.deletarProcesso);
+
+module.exports = router;

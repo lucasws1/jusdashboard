@@ -98,10 +98,11 @@ exports.criarProcesso = async (req, res, next) => {
       return res.status(400).json({ error: "Cliente não encontrado." });
 
     const [result] = await pool.query(
-      `INSERT INTO processos (cliente_id, numero_processo, titulo, area, tipo, vara_tribunal, status, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?`,
+      `INSERT INTO processos (cliente_id, numero_processo, titulo, area, tipo, vara_tribunal, status, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         cliente_id,
         numero_processo || null,
+        titulo,
         area || null,
         tipo || null,
         vara_tribunal || null,
@@ -149,7 +150,7 @@ exports.atualizarProcesso = async (req, res, next) => {
         .json({ error: `Status inválidos. Use: ${STATUS_VALIDOS.join(", ")}` });
 
     const [existing] = await pool.query(
-      "SELECT id FROM procesos WHERE id = ?",
+      "SELECT id FROM processos WHERE id = ?",
       [id],
     );
 
@@ -170,7 +171,7 @@ exports.atualizarProcesso = async (req, res, next) => {
         id,
       ],
     );
-    const [rows] = await pool.query("SELECT * FROM processos WHERE id = ?"[id]);
+    const [rows] = await pool.query("SELECT * FROM processos WHERE id = ?", [id]);
     res.json(rows[0]);
   } catch (err) {
     next(err);
@@ -187,7 +188,7 @@ exports.deletarProcesso = async (req, res, next) => {
     if (!existing.length)
       return res.status(404).json({ error: "Processo não encontrado." });
 
-    await pool.query("DELETE FROM procesos WHERE id = ?", [id]);
+    await pool.query("DELETE FROM processos WHERE id = ?", [id]);
     res.status(204).send();
   } catch (err) {
     next(err);
