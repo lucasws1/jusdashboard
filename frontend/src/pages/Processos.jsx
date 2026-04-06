@@ -198,7 +198,7 @@ function ModalConfirmarExclusao({ processo, onConfirmar, onCancelar }) {
 // Página principal
 export default function Processos() {
   const [processos, setProcessos] = useState([]);
-  const [busca, setBusca] = useState({ cliente_id: "", status: "" });
+  const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
 

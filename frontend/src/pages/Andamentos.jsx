@@ -1,14 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useModal } from "@/hooks/useModal";
-import {
-  Search,
-  Plus,
-  Pencil,
-  Trash2,
-  Loader2,
-  UserX,
-  Loader,
-} from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Loader2, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,18 +12,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { atualizarPrazo, criarPrazo, listarPrazos } from "@/api/prazos";
+
+import {
+  atualizarAndamento,
+  criarAndamento,
+  deletarAndamento,
+  listarAndamentos,
+} from "@/api/andamentos";
 
 const CAMPO_VAZIO = {
   processo_id: "",
+  data_andamento: "",
   descricao: "",
-  data_prazo: "",
-  status: "",
-  observacoes: "",
+  tipo: "",
 };
 
-// Form para criação ou edição
-function FormPrazo({ valores, onChange, erro }) {
+// Formulário modal criação e edição
+function FormAndamento({ valores, onChange, erro }) {
   const campo = (id, label, placeholder, type = "text") => (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
@@ -41,7 +38,11 @@ function FormPrazo({ valores, onChange, erro }) {
         placeholder={placeholder}
         value={valores[id]}
         onChange={(e) => onChange(id, e.target.value)}
-        aria-invalid={id === "processo_id" && !!erro}
+        aria-invalid={
+          id === "processo_id" || id === "data_andamento" || id === "descricao"
+            ? !!erro
+            : false
+        }
       />
     </div>
   );
@@ -53,44 +54,38 @@ function FormPrazo({ valores, onChange, erro }) {
           {erro}
         </p>
       )}
-      {campo("processo_id", "Processo ID *", "ID do Processo.")}
-      {campo("descricao", "Descrição *", "Insira uma descrição.")}
-      {campo("data_prazo", "Data do Prazo *", "Insira o prazo.")}
-      {campo("status", "Status", "Pendente, concluído ou cancelado.")}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          id="observacoes"
-          placeholder="Anotações internas sobre o prazo..."
-          rows={3}
-          value={valores.observacoes}
-          onChange={(e) => onChange("observacoes", e.target.value)}
-        />
-      </div>
+      {campo("processo_id", "Processo ID *", "Selecione o processo")}
+      {campo(
+        "data_andamento",
+        "Data do Andamento *",
+        "Insira a data do andamento",
+        "date",
+      )}
+      {campo("descricao", "Descrição *", "Descreva o andamento", "textarea")}
+      {campo("tipo", "Tipo", "Insira o tipo do andamento")}
     </div>
   );
 }
 
-// Modal de criação ou edição
-function ModalPrazo({ aberto, onFechar, prazoEditando, onSalvar }) {
+// Modal de criação e edição
+function ModalAndamento({ aberto, onFechar, andamentoEditando, onSalvar }) {
   const [valores, setValores] = useState(CAMPO_VAZIO);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
 
   useEffect(() => {
     if (aberto) {
-      setValores(prazoEditando ?? CAMPO_VAZIO);
+      setValores(andamentoEditando ?? CAMPO_VAZIO);
       setErro("");
     }
-  }, [aberto, prazoEditando]);
+  }, [aberto, andamentoEditando]);
 
   const handleChange = (campo, valor) => {
     setValores((v) => ({ ...v, [campo]: valor }));
     if (
       campo === "processo_id" ||
       campo === "descricao" ||
-      campo === "data_prazo" ||
-      campo === "status"
+      campo === "data_andamento"
     )
       setErro("");
   };
@@ -98,24 +93,22 @@ function ModalPrazo({ aberto, onFechar, prazoEditando, onSalvar }) {
   const handleSalvar = async () => {
     if (
       !valores.processo_id.trim() ||
-      !valores.descricao.trim() ||
-      !valores.data_prazo.trim() ||
-      !valores.status.trim()
+      !valores.data_andamento.trim() ||
+      !valores.descricao.trim()
     ) {
-      setErro(
-        'Os campos "processo_id", "descricao", "data_prazo" e "status" são obrigatórios.',
-      );
+      setErro("Preencha os campos obrigatórios.");
       return;
     }
 
     setSalvando(true);
     setErro("");
-
     try {
       await onSalvar(valores);
       onFechar();
     } catch (error) {
-      setErro(error.response?.data?.error || "Erro ao salvar prazo.");
+      setErro(
+        e.response?.data?.error || "Ocorreu um erro ao salvar o andamento.",
+      );
     } finally {
       setSalvando(false);
     }
@@ -126,10 +119,10 @@ function ModalPrazo({ aberto, onFechar, prazoEditando, onSalvar }) {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {prazoEditando ? "Editar prazo" : "Novo prazo"}
+            {andamentoEditando ? "Editar Andamento" : "Novo Andamento"}
           </DialogTitle>
         </DialogHeader>
-        <FormPrazo valores={valores} onChange={handleChange} erro={erro} />
+        <FormAndamento valores={valores} onChange={handleChange} erro={erro} />
         <DialogFooter>
           <Button variant="outline" onClick={onFechar} disabled={salvando}>
             Cancelar
@@ -145,7 +138,7 @@ function ModalPrazo({ aberto, onFechar, prazoEditando, onSalvar }) {
 }
 
 // Modal de confirmação de exclusão
-function ModalConfirmarExclusao({ prazo, onConfirmar, onCancelar }) {
+function ModalConfirmarExclusao({ andamento, onConfirmar, onCancelar }) {
   const [excluindo, setExcluindo] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -155,22 +148,25 @@ function ModalConfirmarExclusao({ prazo, onConfirmar, onCancelar }) {
     try {
       await onConfirmar();
     } catch (error) {
-      setErro(error.response?.data?.error ?? "Erro ao excluir o prazo.");
+      setErro(
+        error.response?.data?.error ??
+          "Ocorreu um erro ao excluir o andamento.",
+      );
       setExcluindo(false);
     }
   };
 
   return (
-    <Dialog open={!!prazo} onOpenChange={(v) => !v && onCancelar()}>
+    <Dialog open={!!andamento} onOpenChange={(v) => !v && onCancelar()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Excluir prazo</DialogTitle>
+          <DialogTitle>Excluir Cliente</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
             Tem certeza que deseja excluir{" "}
             <span className="font-medium text-foreground">
-              {prazo?.descricao}
+              {andamento?.descricao}
             </span>
             ? Essa ação não pode ser desfeita.
           </p>
@@ -198,17 +194,17 @@ function ModalConfirmarExclusao({ prazo, onConfirmar, onCancelar }) {
   );
 }
 
-// Página principal
-export default function Prazos() {
-  const [prazos, setPrazos] = useState([]);
+// Página principal de andamentos
+export default function Andamentos() {
+  const [andamentos, setAndamentos] = useState([]);
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
 
   const {
     aberto: modalAberto,
-    itemEditando: prazoEditando,
-    itemParaExcluir: prazoParaExcluir,
+    itemEditando: andamentoEditando,
+    itemParaExcluir: andamentoParaExcluir,
     abrirNovo,
     abrirEdicao,
     fechar: fecharModal,
@@ -220,10 +216,10 @@ export default function Prazos() {
     setCarregando(true);
     setErroLista("");
     try {
-      const { data } = await listarPrazos(termosBusca);
-      setPrazos(data);
+      const { data } = await listarAndamentos(termosBusca);
+      setAndamentos(data);
     } catch (error) {
-      setErroLista("Não foi possível carregar os prazos.");
+      setErroLista("Ocorreu um erro ao carregar os andamentos.");
     } finally {
       setCarregando(false);
     }
@@ -235,16 +231,16 @@ export default function Prazos() {
   }, [busca, carregar]);
 
   const handleSalvar = async (dados) => {
-    if (prazoEditando) {
-      await atualizarPrazo(prazoEditando.id, dados);
+    if (andamentoEditando) {
+      await atualizarAndamento(andamentoEditando.id, dados);
     } else {
-      await criarPrazo(dados);
+      await criarAndamento(dados);
     }
     await carregar(busca);
   };
 
   const handleExcluir = async () => {
-    await deletarPrazo(prazoParaExcluir.id);
+    await deletarAndamento(andamentoParaExcluir.id);
     cancelarExclusao();
     await carregar(busca);
   };
@@ -254,14 +250,13 @@ export default function Prazos() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Prazos</h1>
+          <h1 className="text-xl font-semibold">Andamentos</h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie os prazos do escritório.
+            Gerencie os andamentos dos processos.
           </p>
         </div>
         <Button onClick={abrirNovo}>
-          <Plus />
-          Novo prazo
+          <Plus /> Novo Andamento
         </Button>
       </div>
       {/* Busca */}
@@ -269,7 +264,7 @@ export default function Prazos() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
           className="pl-9"
-          placeholder="Buscar por ID do processo e/ou status..."
+          placeholder="Buscar andamentos..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
@@ -281,9 +276,9 @@ export default function Prazos() {
           <thead className="bg-muted/50 text-muted-foreground">
             <tr>
               <th className="text-left px-4 py-3 font-medium">Processo ID</th>
+              <th className="px-4 py-2 text-left font-medium">Data</th>
+              <th className="px-4 py-2 text-left font-medium">Tipo</th>
               <th className="text-left px-4 py-3 font-medium">Descrição</th>
-              <th className="text-left px-4 py-3 font-medium">Data/Prazo</th>
-              <th className="text-left px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -299,7 +294,7 @@ export default function Prazos() {
               </tr>
             )}
 
-            {carregando && erroLista && (
+            {!carregando && erroLista && (
               <tr>
                 <td
                   colSpan={5}
@@ -309,15 +304,15 @@ export default function Prazos() {
                 </td>
               </tr>
             )}
-            {!carregando && !erroLista && prazos.length === 0 && (
+            {!carregando && !erroLista && andamentos.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <UserX className="size-8" />
                     <span className="text-sm">
                       {busca
-                        ? "Nenhum prazo encontrado para essa busca."
-                        : "Nenhum prazo cadastrado ainda."}
+                        ? "Nenhum andamento encontrado para sua busca."
+                        : "Nenhum andamento cadastrado."}
                     </span>
                   </div>
                 </td>
@@ -325,27 +320,27 @@ export default function Prazos() {
             )}
 
             {!carregando &&
-              prazos.map((p) => (
+              andamentos.map((a) => (
                 <tr
-                  key={p.id}
+                  key={a.id}
                   className="border-t border-border hover:bg-muted/30 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium">{p.processo_id}</td>
+                  <td className="px-4 py-3 font-medium">{a.processo_id}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {p.descricao}
+                    {a.data || "-"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {p.data_prazo}
+                    {a.tipo || "-"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {p.status}
+                    {a.descricao || "-"}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => abrirEdicao(p)}
+                        onClick={() => abrirEdicao(a)}
                         title="Editar"
                       >
                         <Pencil />
@@ -353,7 +348,7 @@ export default function Prazos() {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => confirmarExclusao(p)}
+                        onClick={() => confirmarExclusao(a)}
                         title="Excluir"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
@@ -366,24 +361,24 @@ export default function Prazos() {
           </tbody>
         </table>
       </div>
-
-      {prazos.length > 0 && !carregando && (
+      {andamentos.length > 0 && !carregando && (
         <p className="text-xs text-muted-foreground">
-          {prazos.length} {prazos.length === 1 ? "prazo" : "prazos"} encontrado
-          {prazos.length === 1 ? "" : "s"}
+          {andamentos.length}{" "}
+          {andamentos.length === 1 ? "andamento" : "andamentos"} encontrado
+          {andamentos.length === 1 ? "" : "s"}
         </p>
       )}
 
       {/* Modais */}
-      <ModalPrazo
+      <ModalAndamento
         aberto={modalAberto}
         onFechar={fecharModal}
-        prazoEditando={prazoEditando}
+        andamentoEditando={andamentoEditando}
         onSalvar={handleSalvar}
       />
 
       <ModalConfirmarExclusao
-        prazo={prazoParaExcluir}
+        andamento={andamentoParaExcluir}
         onConfirmar={handleExcluir}
         onCancelar={cancelarExclusao}
       />
