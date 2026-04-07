@@ -7,9 +7,17 @@ import {
   Trash2,
   Loader2,
   UserX,
-  Loader,
+  CalendarIcon,
 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -200,18 +208,40 @@ function ModalConfirmarExclusao({ prazo, onConfirmar, onCancelar }) {
   );
 }
 
-function mascaraData(valor) {
-  const digits = valor.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+function toApiDate(date) {
+  return date ? format(date, "yyyy-MM-dd") : "";
 }
 
-function parseDateBR(valor) {
-  if (valor.length !== 10) return "";
-  const [dd, mm, yyyy] = valor.split("/");
-  if (!dd || !mm || !yyyy || yyyy.length !== 4) return "";
-  return `${yyyy}-${mm}-${dd}`;
+function DatePickerFiltro({ label, value, onChange }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-muted-foreground">{label}</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className="w-36 justify-start text-left font-normal"
+          >
+            <CalendarIcon className="mr-2 size-4 text-muted-foreground" />
+            {value ? (
+              format(value, "dd/MM/yyyy")
+            ) : (
+              <span className="text-muted-foreground">dd/mm/aaaa</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={value}
+            onSelect={onChange}
+            locale={ptBR}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
 }
 
 // Página principal
@@ -221,8 +251,8 @@ export default function Prazos() {
 
   const [prazos, setPrazos] = useState([]);
   const [busca, setBusca] = useState("");
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
+  const [dataInicio, setDataInicio] = useState(undefined);
+  const [dataFim, setDataFim] = useState(undefined);
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
   const [processoTitulo, setProcessoTitulo] = useState("");
@@ -267,7 +297,7 @@ export default function Prazos() {
 
   useEffect(() => {
     const id = setTimeout(
-      () => carregar(busca, parseDateBR(dataInicio), parseDateBR(dataFim)),
+      () => carregar(busca, toApiDate(dataInicio), toApiDate(dataFim)),
       300,
     );
     return () => clearTimeout(id);
@@ -279,13 +309,13 @@ export default function Prazos() {
     } else {
       await criarPrazo(dados);
     }
-    await carregar(busca, parseDateBR(dataInicio), parseDateBR(dataFim));
+    await carregar(busca, toApiDate(dataInicio), toApiDate(dataFim));
   };
 
   const handleExcluir = async () => {
     await deletarPrazo(prazoParaExcluir.id);
     cancelarExclusao();
-    await carregar(busca, parseDateBR(dataInicio), parseDateBR(dataFim));
+    await carregar(busca, toApiDate(dataInicio), toApiDate(dataFim));
   };
 
   return (
@@ -317,37 +347,12 @@ export default function Prazos() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex  gap-1">
-            <Label
-              htmlFor="data_inicio"
-              className="text-xs text-muted-foreground"
-            >
-              De
-            </Label>
-            <Input
-              id="data_inicio"
-              type="text"
-              placeholder="dd/mm/aaaa"
-              maxLength={10}
-              value={dataInicio}
-              onChange={(e) => setDataInicio(mascaraData(e.target.value))}
-              className="w-36"
-            />
-          </div>
-          <div className="flex gap-1">
-            <Label htmlFor="data_fim" className="text-xs text-muted-foreground">
-              Até
-            </Label>
-            <Input
-              id="data_fim"
-              type="text"
-              placeholder="dd/mm/aaaa"
-              maxLength={10}
-              value={dataFim}
-              onChange={(e) => setDataFim(mascaraData(e.target.value))}
-              className="w-36"
-            />
-          </div>
+          <DatePickerFiltro
+            label="De"
+            value={dataInicio}
+            onChange={setDataInicio}
+          />
+          <DatePickerFiltro label="Até" value={dataFim} onChange={setDataFim} />
         </div>
       </div>
 
