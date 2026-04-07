@@ -76,7 +76,7 @@ exports.atualizarAndamento = async (req, res, next) => {
     const { id } = req.params;
     const { data_andamento, descricao, tipo } = req.body;
 
-    const [existing] = pool.query("SELECT id FROM andamentos WHERE id = ?", [
+    const [existing] = await pool.query("SELECT id FROM andamentos WHERE id = ?", [
       id,
     ]);
     if (!existing.length)

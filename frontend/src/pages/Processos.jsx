@@ -17,6 +17,8 @@ import {
   Loader2,
   UserX,
   ChevronDown,
+  SquareArrowOutUpRight,
+  LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +38,7 @@ import {
 } from "@/api/processos";
 import { obterCliente } from "@/api/clientes";
 import { listarPrazos } from "@/api/prazos";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -58,18 +60,53 @@ const CAMPO_VAZIO = {
 };
 
 // Form para criação ou edição
-function FormProcesso({ valores, onChange, erro }) {
+function FormProcesso({ valores, onChange, erro, clientes }) {
   const campo = (id, label, placeholder, type = "text") => (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type={type}
-        placeholder={placeholder}
-        value={valores[id]}
-        onChange={(e) => onChange(id, e.target.value)}
-        aria-invalid={id === "cliente_id" && !!erro}
-      />
+      {id === "status" ? (
+        <Select
+          id={id}
+          value={valores[id]}
+          onValueChange={(v) => onChange(id, v)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ativo">Ativo</SelectItem>
+            <SelectItem value="suspenso">Suspenso</SelectItem>
+            <SelectItem value="arquivado">Arquivado</SelectItem>
+            <SelectItem value="encerrado">Encerrado</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : id === "cliente_id" ? (
+        <Select
+          id={id}
+          value={valores[id]}
+          onValueChange={(v) => onChange(id, v)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            {clientes.map((cliente) => (
+              <SelectItem key={cliente.id} value={cliente.id}>
+                {cliente.nome}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Input
+          id={id}
+          type={type}
+          placeholder={placeholder}
+          value={valores[id]}
+          onChange={(e) => onChange(id, e.target.value)}
+          aria-invalid={id === "cliente_id" && !!erro}
+        />
+      )}
     </div>
   );
 
@@ -106,7 +143,13 @@ function FormProcesso({ valores, onChange, erro }) {
 }
 
 // Modal de criação ou edição
-function ModalProcesso({ aberto, onFechar, processoEditando, onSalvar }) {
+function ModalProcesso({
+  aberto,
+  onFechar,
+  processoEditando,
+  onSalvar,
+  clientes,
+}) {
   const [valores, setValores] = useState(CAMPO_VAZIO);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
@@ -154,7 +197,12 @@ function ModalProcesso({ aberto, onFechar, processoEditando, onSalvar }) {
             {processoEditando ? "Editar processo" : "Novo processo"}
           </DialogTitle>
         </DialogHeader>
-        <FormProcesso valores={valores} onChange={handleChange} erro={erro} />
+        <FormProcesso
+          valores={valores}
+          onChange={handleChange}
+          erro={erro}
+          clientes={clientes}
+        />
         <DialogFooter>
           <Button variant="outline" onClick={onFechar} disabled={salvando}>
             Cancelar
@@ -259,11 +307,9 @@ export default function Processos() {
           busca: busca || undefined,
         });
         setProcessos(data);
-        const res = await Promise.all(
-          data.map((p) => obterCliente(p.cliente_id)),
-        );
-        const clientes = res.map((c) => c.data);
-        setClientes(clientes);
+        const idsUnicos = [...new Set(data.map((p) => p.cliente_id))];
+        const res = await Promise.all(idsUnicos.map((id) => obterCliente(id)));
+        setClientes(res.map((c) => c.data));
       } catch (error) {
         setErroLista("Não foi possível carregar os processos.");
       } finally {
@@ -395,8 +441,13 @@ export default function Processos() {
                     {clientes.find((c) => c.id === p.cliente_id)?.nome ||
                       p.cliente_id}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {p.numero_processo}
+                  <td className="px-4 py-3 flex items-center text-muted-foreground">
+                    <Link
+                      className="flex hover:underline"
+                      to={`/processos/${p.id}`}
+                    >
+                      {p.numero_processo} <LinkIcon className="size-4" />
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {p.titulo}
@@ -437,6 +488,11 @@ export default function Processos() {
                         <DropdownMenuContent>
                           <DropdownMenuGroup>
                             <DropdownMenuItem
+                              onClick={() => navigate(`/processos/${p.id}`)}
+                            >
+                              Ver Detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               onClick={() => {
                                 navigate(`/prazos?processo_id=${p.id}`);
                               }}
@@ -464,9 +520,17 @@ export default function Processos() {
       {processos.length > 0 && !carregando && (
         <p className="text-xs text-muted-foreground">
           {processos.length} {processos.length === 1 ? "processo" : "processos"}
-          encontrado {processos.length === 1 ? "" : "s"}
+          encontrado{processos.length === 1 ? "" : "s"}
         </p>
       )}
+
+      <Button
+        variant="outline"
+        onClick={() => navigate(-1)}
+        className="cursor-pointer hover:underline w-24 mx-auto"
+      >
+        Voltar
+      </Button>
 
       {/* Modais */}
       <ModalProcesso
@@ -474,6 +538,7 @@ export default function Processos() {
         onFechar={fecharModal}
         processoEditando={processoEditando}
         onSalvar={handleSalvar}
+        clientes={clientes}
       />
 
       <ModalConfirmarExclusao

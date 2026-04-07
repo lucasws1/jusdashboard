@@ -1,6 +1,23 @@
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useEffect, useState, useCallback } from "react";
 import { useModal } from "@/hooks/useModal";
-import { Search, Plus, Pencil, Trash2, Loader2, UserX } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  UserX,
+  ChevronDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +35,7 @@ import {
   atualizarCliente,
   deletarCliente,
 } from "@/api/clientes";
+import { useNavigate } from "react-router-dom";
 
 const CAMPO_VAZIO = {
   nome: "",
@@ -187,6 +205,8 @@ export default function Clientes() {
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
 
+  const navigate = useNavigate();
+
   const {
     aberto: modalAberto,
     itemEditando: clienteEditando,
@@ -343,6 +363,24 @@ export default function Clientes() {
                       >
                         <Trash2 />
                       </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <ChevronDown className="size-5 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuGroup>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                navigate(`/processos?cliente_id=${c.id}`)
+                              }
+                            >
+                              Ver Processos
+                            </DropdownMenuItem>
+                          </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </td>
                 </tr>
@@ -358,6 +396,13 @@ export default function Clientes() {
           {clientes.length === 1 ? "" : "s"}
         </p>
       )}
+
+      <Button
+        onClick={() => navigate(-1)}
+        className="cursor-pointer hover:underline w-24 mx-auto"
+      >
+        Voltar
+      </Button>
 
       {/* Modais */}
       <ModalCliente

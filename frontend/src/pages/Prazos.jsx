@@ -1,3 +1,11 @@
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useState, useCallback } from "react";
 import { useModal } from "@/hooks/useModal";
 import {
@@ -29,8 +37,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { atualizarPrazo, criarPrazo, listarPrazos } from "@/api/prazos";
-import { useSearchParams } from "react-router-dom";
-import { obterProcesso } from "@/api/processos";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { listarProcessos, obterProcesso } from "@/api/processos";
 
 const CAMPO_VAZIO = {
   processo_id: "",
@@ -42,17 +50,62 @@ const CAMPO_VAZIO = {
 
 // Form para criação ou edição
 function FormPrazo({ valores, onChange, erro }) {
+  const [processos, setProcessos] = useState([]);
+  useEffect(() => {
+    const carregarProcessos = async () => {
+      const { data } = await listarProcessos();
+      setProcessos(data);
+    };
+    carregarProcessos();
+  }, []);
+
   const campo = (id, label, placeholder, type = "text") => (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type={type}
-        placeholder={placeholder}
-        value={valores[id]}
-        onChange={(e) => onChange(id, e.target.value)}
-        aria-invalid={id === "processo_id" && !!erro}
-      />
+      {id === "processo_id" ? (
+        <Select
+          id={id}
+          value={valores[id]}
+          onValueChange={(v) => onChange(id, v)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            {processos.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.numero_processo}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : id === "status" ? (
+        <Select
+          id={id}
+          value={valores[id]}
+          onValueChange={(v) => onChange(id, v)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="concluido">Concluído</SelectItem>
+              <SelectItem value="cancelado">Cancelado</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      ) : (
+        <Input
+          id={id}
+          type={type}
+          placeholder={placeholder}
+          value={valores[id]}
+          onChange={(e) => onChange(id, e.target.value)}
+          aria-invalid={id === "processo_id" && !!erro}
+        />
+      )}
     </div>
   );
 
@@ -256,6 +309,8 @@ export default function Prazos() {
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
   const [processoTitulo, setProcessoTitulo] = useState("");
+  const [processos, setProcessos] = useState([]);
+  const navigate = useNavigate();
 
   const {
     aberto: modalAberto,
@@ -284,6 +339,7 @@ export default function Prazos() {
           const res = await obterProcesso(processoIdFiltro);
           setProcessoTitulo(res.data.numero_processo);
         }
+        setProcessos((await listarProcessos()).data);
 
         setPrazos(data);
       } catch (error) {
@@ -361,7 +417,7 @@ export default function Prazos() {
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-muted-foreground">
             <tr>
-              <th className="text-left px-4 py-3 font-medium">Processo ID</th>
+              <th className="text-left px-4 py-3 font-medium">Processo n.</th>
               <th className="text-left px-4 py-3 font-medium">Descrição</th>
               <th className="text-left px-4 py-3 font-medium">Data/Prazo</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
@@ -411,7 +467,15 @@ export default function Prazos() {
                   key={p.id}
                   className="border-t border-border hover:bg-muted/30 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium">{p.processo_id}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Button
+                      onClick={() => navigate(`/processos/${p.id}`)}
+                      variant="link"
+                    >
+                      {processos.find((proc) => proc.id === p.processo_id)
+                        ?.numero_processo || "Processo não encontrado"}
+                    </Button>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {p.descricao}
                   </td>
@@ -454,6 +518,14 @@ export default function Prazos() {
           {prazos.length === 1 ? "" : "s"}
         </p>
       )}
+
+      <Button
+        variant="outline"
+        onClick={() => navigate(-1)}
+        className="cursor-pointer hover:underline w-24 mx-auto"
+      >
+        Voltar
+      </Button>
 
       {/* Modais */}
       <ModalPrazo

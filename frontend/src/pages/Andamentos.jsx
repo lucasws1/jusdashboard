@@ -19,7 +19,7 @@ import {
   deletarAndamento,
   listarAndamentos,
 } from "@/api/andamentos";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { obterProcesso } from "@/api/processos";
 
 const CAMPO_VAZIO = {
@@ -94,7 +94,7 @@ function ModalAndamento({ aberto, onFechar, andamentoEditando, onSalvar }) {
 
   const handleSalvar = async () => {
     if (
-      !valores.processo_id.trim() ||
+      !valores.processo_id ||
       !valores.data_andamento.trim() ||
       !valores.descricao.trim()
     ) {
@@ -109,7 +109,7 @@ function ModalAndamento({ aberto, onFechar, andamentoEditando, onSalvar }) {
       onFechar();
     } catch (error) {
       setErro(
-        e.response?.data?.error || "Ocorreu um erro ao salvar o andamento.",
+        error.response?.data?.error || "Ocorreu um erro ao salvar o andamento.",
       );
     } finally {
       setSalvando(false);
@@ -206,6 +206,8 @@ export default function Andamentos() {
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
+
+  const navigate = useNavigate();
 
   const {
     aberto: modalAberto,
@@ -383,6 +385,13 @@ export default function Andamentos() {
           {andamentos.length === 1 ? "" : "s"}
         </p>
       )}
+      <Button
+        variant="outline"
+        onClick={() => navigate(-1)}
+        className="cursor-pointer hover:underline w-24 mx-auto"
+      >
+        Voltar
+      </Button>
 
       {/* Modais */}
       <ModalAndamento

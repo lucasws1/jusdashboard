@@ -15,10 +15,14 @@ exports.listarPrazos = async (req, res, next) => {
 
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (data_inicio && !dateRegex.test(data_inicio)) {
-      return res.status(400).json({ error: 'Formato de "data_inicio" inválido. Use YYYY-MM-DD.' });
+      return res
+        .status(400)
+        .json({ error: 'Formato de "data_inicio" inválido. Use YYYY-MM-DD.' });
     }
     if (data_fim && !dateRegex.test(data_fim)) {
-      return res.status(400).json({ error: 'Formato de "data_fim" inválido. Use YYYY-MM-DD.' });
+      return res
+        .status(400)
+        .json({ error: 'Formato de "data_fim" inválido. Use YYYY-MM-DD.' });
     }
 
     let sql = `
