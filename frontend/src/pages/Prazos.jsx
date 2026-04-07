@@ -101,7 +101,11 @@ function FormPrazo({ valores, onChange, erro }) {
           id={id}
           type={type}
           placeholder={placeholder}
-          value={valores[id]}
+          value={
+            valores[id] && id === "data_prazo"
+              ? valores[id].split("T")[0]
+              : valores[id]
+          }
           onChange={(e) => onChange(id, e.target.value)}
           aria-invalid={id === "processo_id" && !!erro}
         />
@@ -118,7 +122,7 @@ function FormPrazo({ valores, onChange, erro }) {
       )}
       {campo("processo_id", "Processo ID *", "ID do Processo.")}
       {campo("descricao", "Descrição *", "Insira uma descrição.")}
-      {campo("data_prazo", "Data do Prazo *", "Insira o prazo.")}
+      {campo("data_prazo", "Data do Prazo *", "Insira o prazo.", "date")}
       {campo("status", "Status", "Pendente, concluído ou cancelado.")}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="observacoes">Observações</Label>
@@ -160,10 +164,10 @@ function ModalPrazo({ aberto, onFechar, prazoEditando, onSalvar }) {
 
   const handleSalvar = async () => {
     if (
-      !valores.processo_id.trim() ||
-      !valores.descricao.trim() ||
-      !valores.data_prazo.trim() ||
-      !valores.status.trim()
+      !valores.processo_id ||
+      !valores.descricao ||
+      !valores.data_prazo ||
+      !valores.status
     ) {
       setErro(
         'Os campos "processo_id", "descricao", "data_prazo" e "status" são obrigatórios.',

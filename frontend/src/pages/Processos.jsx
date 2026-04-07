@@ -168,7 +168,7 @@ function ModalProcesso({
   };
 
   const handleSalvar = async () => {
-    if (!valores.cliente_id.trim()) {
+    if (!String(valores.cliente_id ?? "").trim()) {
       setErro('O campo "cliente_id" é obrigatório.');
       return;
     } else if (!valores.titulo.trim()) {

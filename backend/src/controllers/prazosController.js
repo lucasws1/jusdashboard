@@ -2,6 +2,11 @@ const pool = require("../config/db");
 
 const STATUS_VALIDOS = ["pendente", "concluido", "cancelado"];
 
+const formatarData = (data) => {
+  if (!data) return null;
+  return new Date(data).toISOString().split("T")[0];
+};
+
 // GET /api/prazos?processo_id=X&status=pendente&data_inicio=YYYY-MM-DD&data_fim=YYYY-MM-DD
 exports.listarPrazos = async (req, res, next) => {
   try {
@@ -139,7 +144,7 @@ exports.criarPrazo = async (req, res, next) => {
 
     const [result] = await pool.query(
       "INSERT INTO prazos (processo_id, descricao, data_prazo, status, observacoes) VALUES (?, ?, ?, ?, ?)",
-      [processo_id, descricao, data_prazo, statusFinal, observacoes || null],
+      [processo_id, descricao, formatarData(data_prazo), statusFinal, observacoes || null],
     );
 
     const [rows] = await pool.query("SELECT * FROM prazos WHERE id = ?", [
@@ -180,7 +185,7 @@ exports.atualizarPrazo = async (req, res, next) => {
 
     await pool.query(
       "UPDATE prazos SET descricao = ?, data_prazo = ?, status = ?, observacoes = ? WHERE id = ?",
-      [descricao, data_prazo, statusFinal, observacoes || null, id],
+      [descricao, formatarData(data_prazo), statusFinal, observacoes || null, id],
     );
 
     const [rows] = await pool.query("SELECT * FROM prazos WHERE id = ?", [id]);
