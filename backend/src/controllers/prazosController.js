@@ -2,15 +2,23 @@ const pool = require("../config/db");
 
 const STATUS_VALIDOS = ["pendente", "concluido", "cancelado"];
 
-// GET /api/prazos?processo_id=X&status=pendente
+// GET /api/prazos?processo_id=X&status=pendente&data_inicio=YYYY-MM-DD&data_fim=YYYY-MM-DD
 exports.listarPrazos = async (req, res, next) => {
   try {
-    const { processo_id, status } = req.query;
+    const { processo_id, status, data_inicio, data_fim } = req.query;
 
     if (status && !STATUS_VALIDOS.includes(status)) {
       return res
         .status(400)
         .json({ error: `Status inválido. Use: ${STATUS_VALIDOS.join(", ")}` });
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (data_inicio && !dateRegex.test(data_inicio)) {
+      return res.status(400).json({ error: 'Formato de "data_inicio" inválido. Use YYYY-MM-DD.' });
+    }
+    if (data_fim && !dateRegex.test(data_fim)) {
+      return res.status(400).json({ error: 'Formato de "data_fim" inválido. Use YYYY-MM-DD.' });
     }
 
     let sql = `
@@ -31,6 +39,16 @@ exports.listarPrazos = async (req, res, next) => {
     if (status) {
       sql += " AND pr.status = ?";
       params.push(status);
+    }
+
+    if (data_inicio) {
+      sql += " AND pr.data_prazo >= ?";
+      params.push(data_inicio);
+    }
+
+    if (data_fim) {
+      sql += " AND pr.data_prazo <= ?";
+      params.push(data_fim);
     }
 
     sql += " ORDER BY pr.data_prazo ASC";

@@ -19,6 +19,8 @@ import {
   deletarAndamento,
   listarAndamentos,
 } from "@/api/andamentos";
+import { useSearchParams } from "react-router-dom";
+import { obterProcesso } from "@/api/processos";
 
 const CAMPO_VAZIO = {
   processo_id: "",
@@ -196,6 +198,10 @@ function ModalConfirmarExclusao({ andamento, onConfirmar, onCancelar }) {
 
 // Página principal de andamentos
 export default function Andamentos() {
+  const [searchParams] = useSearchParams();
+  const processoIdFiltro = searchParams.get("processo_id") || "";
+  const [processoNumero, setProcessoNumero] = useState("");
+
   const [andamentos, setAndamentos] = useState([]);
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
@@ -212,21 +218,26 @@ export default function Andamentos() {
     cancelarExclusao,
   } = useModal();
 
-  const carregar = useCallback(async (termosBusca = "") => {
+  const carregar = useCallback(async () => {
     setCarregando(true);
     setErroLista("");
     try {
-      const { data } = await listarAndamentos(termosBusca);
+      const { data } = await listarAndamentos({
+        processo_id: processoIdFiltro,
+      });
       setAndamentos(data);
+
+      const res = await obterProcesso(processoIdFiltro);
+      setProcessoNumero(res.data.numero_processo);
     } catch (error) {
       setErroLista("Ocorreu um erro ao carregar os andamentos.");
     } finally {
       setCarregando(false);
     }
-  }, []);
+  }, [processoIdFiltro]);
 
   useEffect(() => {
-    const id = setTimeout(() => carregar(busca), 300);
+    const id = setTimeout(() => carregar(), 300);
     return () => clearTimeout(id);
   }, [busca, carregar]);
 
@@ -250,7 +261,9 @@ export default function Andamentos() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Andamentos</h1>
+          <h1 className="text-xl font-semibold">
+            Andamentos {processoNumero && `do processo: ${processoNumero}`}
+          </h1>
           <p className="text-sm text-muted-foreground">
             Gerencie os andamentos dos processos.
           </p>
@@ -327,7 +340,9 @@ export default function Andamentos() {
                 >
                   <td className="px-4 py-3 font-medium">{a.processo_id}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {a.data || "-"}
+                    {a.data_andamento
+                      ? new Date(a.data_andamento).toLocaleDateString("pt-br")
+                      : "-"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {a.tipo || "-"}

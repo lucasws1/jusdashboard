@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { atualizarPrazo, criarPrazo, listarPrazos } from "@/api/prazos";
+import { useSearchParams } from "react-router-dom";
+import { obterProcesso } from "@/api/processos";
 
 const CAMPO_VAZIO = {
   processo_id: "",
@@ -198,12 +200,32 @@ function ModalConfirmarExclusao({ prazo, onConfirmar, onCancelar }) {
   );
 }
 
+function mascaraData(valor) {
+  const digits = valor.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function parseDateBR(valor) {
+  if (valor.length !== 10) return "";
+  const [dd, mm, yyyy] = valor.split("/");
+  if (!dd || !mm || !yyyy || yyyy.length !== 4) return "";
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 // Página principal
 export default function Prazos() {
+  const [searchParams] = useSearchParams();
+  const processoIdFiltro = searchParams.get("processo_id");
+
   const [prazos, setPrazos] = useState([]);
   const [busca, setBusca] = useState("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
+  const [processoTitulo, setProcessoTitulo] = useState("");
 
   const {
     aberto: modalAberto,
@@ -216,23 +238,40 @@ export default function Prazos() {
     cancelarExclusao,
   } = useModal();
 
-  const carregar = useCallback(async (termosBusca = "") => {
-    setCarregando(true);
-    setErroLista("");
-    try {
-      const { data } = await listarPrazos(termosBusca);
-      setPrazos(data);
-    } catch (error) {
-      setErroLista("Não foi possível carregar os prazos.");
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
+  const carregar = useCallback(
+    async (termosBusca = "", inicio = "", fim = "") => {
+      setCarregando(true);
+      setErroLista("");
+
+      try {
+        const { data } = await listarPrazos({
+          processo_id: processoIdFiltro ?? undefined,
+          status: termosBusca.trim() || undefined,
+          data_inicio: inicio || undefined,
+          data_fim: fim || undefined,
+        });
+        if (processoIdFiltro) {
+          const res = await obterProcesso(processoIdFiltro);
+          setProcessoTitulo(res.data.numero_processo);
+        }
+
+        setPrazos(data);
+      } catch (error) {
+        setErroLista("Não foi possível carregar os prazos.");
+      } finally {
+        setCarregando(false);
+      }
+    },
+    [processoIdFiltro],
+  );
 
   useEffect(() => {
-    const id = setTimeout(() => carregar(busca), 300);
+    const id = setTimeout(
+      () => carregar(busca, parseDateBR(dataInicio), parseDateBR(dataFim)),
+      300,
+    );
     return () => clearTimeout(id);
-  }, [busca, carregar]);
+  }, [busca, dataInicio, dataFim, carregar]);
 
   const handleSalvar = async (dados) => {
     if (prazoEditando) {
@@ -240,13 +279,13 @@ export default function Prazos() {
     } else {
       await criarPrazo(dados);
     }
-    await carregar(busca);
+    await carregar(busca, parseDateBR(dataInicio), parseDateBR(dataFim));
   };
 
   const handleExcluir = async () => {
     await deletarPrazo(prazoParaExcluir.id);
     cancelarExclusao();
-    await carregar(busca);
+    await carregar(busca, parseDateBR(dataInicio), parseDateBR(dataFim));
   };
 
   return (
@@ -254,7 +293,9 @@ export default function Prazos() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Prazos</h1>
+          <h1 className="text-xl font-semibold">
+            Prazos {processoTitulo && ` - processo n. ${processoTitulo}`}
+          </h1>
           <p className="text-sm text-muted-foreground">
             Gerencie os prazos do escritório.
           </p>
@@ -264,15 +305,50 @@ export default function Prazos() {
           Novo prazo
         </Button>
       </div>
-      {/* Busca */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Buscar por ID do processo e/ou status..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
+      {/* Busca e filtros */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por ID do processo e/ou status..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex  gap-1">
+            <Label
+              htmlFor="data_inicio"
+              className="text-xs text-muted-foreground"
+            >
+              De
+            </Label>
+            <Input
+              id="data_inicio"
+              type="text"
+              placeholder="dd/mm/aaaa"
+              maxLength={10}
+              value={dataInicio}
+              onChange={(e) => setDataInicio(mascaraData(e.target.value))}
+              className="w-36"
+            />
+          </div>
+          <div className="flex gap-1">
+            <Label htmlFor="data_fim" className="text-xs text-muted-foreground">
+              Até
+            </Label>
+            <Input
+              id="data_fim"
+              type="text"
+              placeholder="dd/mm/aaaa"
+              maxLength={10}
+              value={dataFim}
+              onChange={(e) => setDataFim(mascaraData(e.target.value))}
+              className="w-36"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Tabela */}
@@ -335,7 +411,7 @@ export default function Prazos() {
                     {p.descricao}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {p.data_prazo}
+                    {new Date(p.data_prazo).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {p.status}

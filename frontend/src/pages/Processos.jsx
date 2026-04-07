@@ -1,6 +1,23 @@
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useEffect, useState, useCallback } from "react";
 import { useModal } from "@/hooks/useModal";
-import { Search, Plus, Pencil, Trash2, Loader2, UserX } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  UserX,
+  ChevronDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,6 +34,17 @@ import {
   deletarProcesso,
   listarProcessos,
 } from "@/api/processos";
+import { obterCliente } from "@/api/clientes";
+import { listarPrazos } from "@/api/prazos";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CAMPO_VAZIO = {
   cliente_id: "",
@@ -198,9 +226,16 @@ function ModalConfirmarExclusao({ processo, onConfirmar, onCancelar }) {
 // Página principal
 export default function Processos() {
   const [processos, setProcessos] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
+
+  const [searchParams] = useSearchParams();
+  const clienteIdFiltro = searchParams.get("cliente_id");
+  const [statusFiltro, setStatusFiltro] = useState("");
+
+  const navigate = useNavigate();
 
   const {
     aberto: modalAberto,
@@ -213,23 +248,35 @@ export default function Processos() {
     cancelarExclusao,
   } = useModal();
 
-  const carregar = useCallback(async (termosBusca = "") => {
-    setCarregando(true);
-    setErroLista("");
-    try {
-      const { data } = await listarProcessos(termosBusca);
-      setProcessos(data);
-    } catch (error) {
-      setErroLista("Não foi possível carregar os processos.");
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
+  const carregar = useCallback(
+    async (busca) => {
+      setCarregando(true);
+      setErroLista("");
+      try {
+        const { data } = await listarProcessos({
+          cliente_id: clienteIdFiltro ?? undefined,
+          status: statusFiltro || undefined,
+          busca: busca || undefined,
+        });
+        setProcessos(data);
+        const res = await Promise.all(
+          data.map((p) => obterCliente(p.cliente_id)),
+        );
+        const clientes = res.map((c) => c.data);
+        setClientes(clientes);
+      } catch (error) {
+        setErroLista("Não foi possível carregar os processos.");
+      } finally {
+        setCarregando(false);
+      }
+    },
+    [clienteIdFiltro, statusFiltro],
+  );
 
   useEffect(() => {
     const id = setTimeout(() => carregar(busca), 300);
     return () => clearTimeout(id);
-  }, [busca, carregar]);
+  }, [carregar, busca, statusFiltro]);
 
   const handleSalvar = async (dados) => {
     if (processoEditando) {
@@ -237,13 +284,13 @@ export default function Processos() {
     } else {
       await criarProcesso(dados);
     }
-    await carregar(busca);
+    await carregar();
   };
 
   const handleExcluir = async () => {
     await deletarProcesso(processoParaExcluir.id);
     cancelarExclusao();
-    await carregar(busca);
+    await carregar();
   };
 
   return (
@@ -262,7 +309,7 @@ export default function Processos() {
         </Button>
       </div>
       {/* Busca */}
-      <div className="relative">
+      <div className="relative flex items-center gap-2">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
           className="pl-9"
@@ -270,6 +317,20 @@ export default function Processos() {
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
+        <div>
+          <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem>Todos</SelectItem>
+              <SelectItem value="ativo">Ativo</SelectItem>
+              <SelectItem value="suspenso">Suspenso</SelectItem>
+              <SelectItem value="arquivado">Arquivado</SelectItem>
+              <SelectItem value="encerrado">Encerrado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Tabela */}
@@ -277,7 +338,7 @@ export default function Processos() {
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-muted-foreground">
             <tr>
-              <th className="text-left px-4 py-3 font-medium">Cliente ID</th>
+              <th className="text-left px-4 py-3 font-medium">Cliente</th>
               <th className="text-left px-4 py-3 font-medium">Número</th>
               <th className="text-left px-4 py-3 font-medium">Título</th>
               <th className="text-left px-4 py-3 font-medium">Área</th>
@@ -330,7 +391,10 @@ export default function Processos() {
                   key={p.id}
                   className="border-t border-border hover:bg-muted/30 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium">{p.cliente_id}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {clientes.find((c) => c.id === p.cliente_id)?.nome ||
+                      p.cliente_id}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {p.numero_processo}
                   </td>
@@ -349,7 +413,7 @@ export default function Processos() {
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
-                        size="icon-sm"
+                        size="sm"
                         onClick={() => abrirEdicao(p)}
                         title="Editar"
                       >
@@ -357,13 +421,38 @@ export default function Processos() {
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon-sm"
+                        size="sm"
                         onClick={() => confirmarExclusao(p)}
                         title="Excluir"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 />
                       </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <ChevronDown className="size-5 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuGroup>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                navigate(`/prazos?processo_id=${p.id}`);
+                              }}
+                            >
+                              Ver Prazos
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                navigate(`/andamentos?processo_id=${p.id}`);
+                              }}
+                            >
+                              Ver Andamentos
+                            </DropdownMenuItem>
+                          </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </td>
                 </tr>

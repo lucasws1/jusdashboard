@@ -13,6 +13,7 @@ exports.listarAndamentos = async (req, res, next) => {
       "SELECT * FROM andamentos WHERE processo_id = ? ORDER BY data_andamento DESC, id DESC",
       [processo_id],
     );
+    res.json(rows);
   } catch (err) {
     next(err);
   }

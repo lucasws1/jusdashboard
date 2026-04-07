@@ -1,11 +1,11 @@
 const pool = require("../config/db");
 
-const STATUS_VALIDOS = ["ativo", "suspenso", "arquivado", "concluido"];
+const STATUS_VALIDOS = ["ativo", "suspenso", "arquivado", "encerrado"];
 
 // GET /api/processos?cliente_id=X&status=ativo
 exports.listarProcessos = async (req, res, next) => {
   try {
-    const { cliente_id, status } = req.query;
+    const { cliente_id, status, busca } = req.query;
 
     if (status && !STATUS_VALIDOS.includes(status)) {
       return res
@@ -30,7 +30,10 @@ exports.listarProcessos = async (req, res, next) => {
       sql += " AND p.status = ?";
       params.push(status);
     }
-
+    if (busca) {
+      sql += " AND (p.titulo LIKE ? OR p.numero_processo LIKE ?)";
+      params.push(`%${busca}%`, `%${busca}%`);
+    }
     sql += " ORDER BY p.created_at DESC";
 
     const [rows] = await pool.query(sql, params);
@@ -171,7 +174,9 @@ exports.atualizarProcesso = async (req, res, next) => {
         id,
       ],
     );
-    const [rows] = await pool.query("SELECT * FROM processos WHERE id = ?", [id]);
+    const [rows] = await pool.query("SELECT * FROM processos WHERE id = ?", [
+      id,
+    ]);
     res.json(rows[0]);
   } catch (err) {
     next(err);

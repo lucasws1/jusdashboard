@@ -3,6 +3,7 @@ import Clientes from "./pages/Clientes";
 import Sidebar from "./components/Sidebar";
 import Processos from "./pages/Processos";
 import Prazos from "./pages/Prazos";
+import Andamentos from "./pages/Andamentos";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
             <Route path="/clientes" element={<Clientes />} />
             <Route path="/processos" element={<Processos />} />
             <Route path="/prazos" element={<Prazos />} />
+            <Route path="/andamentos" element={<Andamentos />} />
           </Routes>
         </main>
       </div>
