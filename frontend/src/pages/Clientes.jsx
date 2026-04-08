@@ -35,7 +35,7 @@ import {
   atualizarCliente,
   deletarCliente,
 } from "@/api/clientes";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const CAMPO_VAZIO = {
   nome: "",
@@ -334,7 +334,9 @@ export default function Clientes() {
                   key={c.id}
                   className="border-t border-border hover:bg-muted/30 transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium">{c.nome}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link to={`/processos?cliente_id=${c.id}`}>{c.nome}</Link>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {c.cpf_cnpj || "—"}
                   </td>
