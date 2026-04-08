@@ -3,8 +3,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState, useCallback } from "react";
@@ -19,16 +17,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   listarClientes,
   criarCliente,
@@ -36,167 +25,8 @@ import {
   deletarCliente,
 } from "@/api/clientes";
 import { Link, useNavigate } from "react-router-dom";
-
-const CAMPO_VAZIO = {
-  nome: "",
-  cpf_cnpj: "",
-  email: "",
-  telefone: "",
-  endereco: "",
-  observacoes: "",
-};
-
-// ── Formulário reutilizado no modal de criação e edição ──────────────────────
-function FormCliente({ valores, onChange, erro }) {
-  const campo = (id, label, placeholder, type = "text") => (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type={type}
-        placeholder={placeholder}
-        value={valores[id]}
-        onChange={(e) => onChange(id, e.target.value)}
-        aria-invalid={id === "nome" && !!erro}
-      />
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col gap-4">
-      {erro && (
-        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-          {erro}
-        </p>
-      )}
-      {campo("nome", "Nome *", "Nome completo ou razão social")}
-      {campo("cpf_cnpj", "CPF / CNPJ", "000.000.000-00 ou 00.000.000/0001-00")}
-      {campo("email", "E-mail", "email@exemplo.com", "email")}
-      {campo("telefone", "Telefone", "(11) 99999-9999", "tel")}
-      {campo("endereco", "Endereço", "Rua, número, cidade")}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          id="observacoes"
-          placeholder="Anotações internas sobre o cliente..."
-          rows={3}
-          value={valores.observacoes}
-          onChange={(e) => onChange("observacoes", e.target.value)}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ── Modal de criação / edição ────────────────────────────────────────────────
-function ModalCliente({ aberto, onFechar, clienteEditando, onSalvar }) {
-  const [valores, setValores] = useState(CAMPO_VAZIO);
-  const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState("");
-
-  useEffect(() => {
-    if (aberto) {
-      setValores(clienteEditando ?? CAMPO_VAZIO);
-      setErro("");
-    }
-  }, [aberto, clienteEditando]);
-
-  const handleChange = (campo, valor) => {
-    setValores((v) => ({ ...v, [campo]: valor }));
-    if (campo === "nome") setErro("");
-  };
-
-  const handleSalvar = async () => {
-    if (!valores.nome.trim()) {
-      setErro("O campo nome é obrigatório.");
-      return;
-    }
-    setSalvando(true);
-    setErro("");
-    try {
-      await onSalvar(valores);
-      onFechar();
-    } catch (e) {
-      setErro(e.response?.data?.error ?? "Erro ao salvar cliente.");
-    } finally {
-      setSalvando(false);
-    }
-  };
-
-  return (
-    <Dialog open={aberto} onOpenChange={(v) => !v && onFechar()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {clienteEditando ? "Editar cliente" : "Novo cliente"}
-          </DialogTitle>
-        </DialogHeader>
-        <FormCliente valores={valores} onChange={handleChange} erro={erro} />
-        <DialogFooter>
-          <Button variant="outline" onClick={onFechar} disabled={salvando}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSalvar} disabled={salvando}>
-            {salvando && <Loader2 className="animate-spin" />}
-            {salvando ? "Salvando..." : "Salvar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── Modal de confirmação de exclusão ────────────────────────────────────────
-function ModalConfirmarExclusao({ cliente, onConfirmar, onCancelar }) {
-  const [excluindo, setExcluindo] = useState(false);
-  const [erro, setErro] = useState("");
-
-  const handleConfirmar = async () => {
-    setExcluindo(true);
-    setErro("");
-    try {
-      await onConfirmar();
-    } catch (e) {
-      setErro(e.response?.data?.error ?? "Erro ao excluir cliente.");
-      setExcluindo(false);
-    }
-  };
-
-  return (
-    <Dialog open={!!cliente} onOpenChange={(v) => !v && onCancelar()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Excluir cliente</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">
-            Tem certeza que deseja excluir{" "}
-            <span className="font-medium text-foreground">{cliente?.nome}</span>
-            ? Essa ação não pode ser desfeita.
-          </p>
-          {erro && (
-            <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-              {erro}
-            </p>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancelar} disabled={excluindo}>
-            Cancelar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirmar}
-            disabled={excluindo}
-          >
-            {excluindo && <Loader2 className="animate-spin" />}
-            {excluindo ? "Excluindo..." : "Excluir"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+import ModalConfirmarExclusao from "@/components/ModalConfirmarExclusao";
+import ModalCliente from "@/components/clientes/ModalCliente";
 
 // ── Página principal ─────────────────────────────────────────────────────────
 export default function Clientes() {
@@ -400,6 +230,7 @@ export default function Clientes() {
       )}
 
       <Button
+        variant="outline"
         onClick={() => navigate(-1)}
         className="cursor-pointer hover:underline w-24 mx-auto"
       >
@@ -414,7 +245,7 @@ export default function Clientes() {
         onSalvar={handleSalvar}
       />
       <ModalConfirmarExclusao
-        cliente={clienteParaExcluir}
+        item={clienteParaExcluir}
         onConfirmar={handleExcluir}
         onCancelar={cancelarExclusao}
       />

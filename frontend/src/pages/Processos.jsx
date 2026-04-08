@@ -3,12 +3,11 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState, useCallback } from "react";
 import { useModal } from "@/hooks/useModal";
+import ModalConfirmarExclusao from "@/components/ModalConfirmarExclusao";
 import {
   Search,
   Plus,
@@ -17,259 +16,25 @@ import {
   Loader2,
   UserX,
   ChevronDown,
-  SquareArrowOutUpRight,
   LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   atualizarProcesso,
   deletarProcesso,
   listarProcessos,
 } from "@/api/processos";
 import { obterCliente } from "@/api/clientes";
-import { listarPrazos } from "@/api/prazos";
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const CAMPO_VAZIO = {
-  cliente_id: "",
-  numero_processo: "",
-  titulo: "",
-  area: "",
-  tipo: "",
-  vara_tribunal: "",
-  status: "",
-  observacoes: "",
-};
-
-// Form para criação ou edição
-function FormProcesso({ valores, onChange, erro, clientes }) {
-  const campo = (id, label, placeholder, type = "text") => (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      {id === "status" ? (
-        <Select
-          id={id}
-          value={valores[id]}
-          onValueChange={(v) => onChange(id, v)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ativo">Ativo</SelectItem>
-            <SelectItem value="suspenso">Suspenso</SelectItem>
-            <SelectItem value="arquivado">Arquivado</SelectItem>
-            <SelectItem value="encerrado">Encerrado</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : id === "cliente_id" ? (
-        <Select
-          id={id}
-          value={valores[id]}
-          onValueChange={(v) => onChange(id, v)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {clientes.map((cliente) => (
-              <SelectItem key={cliente.id} value={cliente.id}>
-                {cliente.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : (
-        <Input
-          id={id}
-          type={type}
-          placeholder={placeholder}
-          value={valores[id]}
-          onChange={(e) => onChange(id, e.target.value)}
-          aria-invalid={id === "cliente_id" && !!erro}
-        />
-      )}
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col gap-4">
-      {erro && (
-        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-          {erro}
-        </p>
-      )}
-      {campo("cliente_id", "Cliente ID *", "ID do Cliente")}
-      {campo(
-        "numero_processo",
-        "Número do Processo",
-        "0000000-00.0000.0.00.0000",
-      )}
-      {campo("titulo", "Título *", "Ex.: Ação Trabalhista Nutrella")}
-      {campo("area", "Área", "Ex.: Cível")}
-      {campo("tipo", "Tipo", "Ex.: Execução")}
-      {campo("vara_tribunal", "Vara / Tribunal", "Ex.: 10a Vara do Trabalho")}
-      {campo("status", "Status", "Ativo, suspenso, arquivado, encerrado")}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          id="observacoes"
-          placeholder="Anotações internas sobre o cliente..."
-          rows={3}
-          value={valores.observacoes}
-          onChange={(e) => onChange("observacoes", e.target.value)}
-        />
-      </div>
-    </div>
-  );
-}
-
-// Modal de criação ou edição
-function ModalProcesso({
-  aberto,
-  onFechar,
-  processoEditando,
-  onSalvar,
-  clientes,
-}) {
-  const [valores, setValores] = useState(CAMPO_VAZIO);
-  const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState("");
-
-  useEffect(() => {
-    if (aberto) {
-      setValores(processoEditando ?? CAMPO_VAZIO);
-      setErro("");
-    }
-  }, [aberto, processoEditando]);
-
-  const handleChange = (campo, valor) => {
-    setValores((v) => ({ ...v, [campo]: valor }));
-    if (campo === "cliente_id") setErro("");
-    else if (campo === "titulo") setErro("");
-  };
-
-  const handleSalvar = async () => {
-    if (!String(valores.cliente_id ?? "").trim()) {
-      setErro('O campo "cliente_id" é obrigatório.');
-      return;
-    } else if (!valores.titulo.trim()) {
-      setErro('O campo "titulo" é obrigatório.');
-      return;
-    }
-
-    setSalvando(true);
-    setErro("");
-
-    try {
-      await onSalvar(valores);
-      onFechar();
-    } catch (error) {
-      setErro(error.response?.data?.error || "Erro ao salvar processo.");
-    } finally {
-      setSalvando(false);
-    }
-  };
-
-  return (
-    <Dialog open={aberto} onOpenChange={(v) => !v && onFechar()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {processoEditando ? "Editar processo" : "Novo processo"}
-          </DialogTitle>
-        </DialogHeader>
-        <FormProcesso
-          valores={valores}
-          onChange={handleChange}
-          erro={erro}
-          clientes={clientes}
-        />
-        <DialogFooter>
-          <Button variant="outline" onClick={onFechar} disabled={salvando}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSalvar} disabled={salvando}>
-            {salvando && <Loader2 className="animate-spin" />}
-            {salvando ? "Salvando..." : "Salvar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// Modal de confirmação da exclusão
-function ModalConfirmarExclusao({ processo, onConfirmar, onCancelar }) {
-  const [excluindo, setExcluindo] = useState(false);
-  const [erro, setErro] = useState("");
-
-  const handleConfirmar = async () => {
-    setExcluindo(true);
-    setErro("");
-    try {
-      await onConfirmar();
-    } catch (error) {
-      setErro(error.response?.data?.error ?? "Erro ao excluir processo.");
-      setExcluindo(false);
-    }
-  };
-
-  return (
-    <Dialog open={!!processo} onOpenChange={(v) => !v && onCancelar()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Excluir processo</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">
-            Tem certeza que deseja excluir{" "}
-            <span className="font-medium text-foreground">
-              {processo?.titulo}
-            </span>
-            ? Essa ação não pode ser desfeita.
-          </p>
-          {erro && (
-            <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-              {erro}
-            </p>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancelar} disabled={excluindo}>
-            Cancelar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirmar}
-            disabled={excluindo}
-          >
-            {excluindo && <Loader2 className="animate-spin" />}
-            {excluindo ? "Excluindo..." : "Excluir"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+import ModalProcesso from "@/components/processos/ModalProcesso";
 
 // Página principal
 export default function Processos() {
@@ -542,7 +307,7 @@ export default function Processos() {
       />
 
       <ModalConfirmarExclusao
-        processo={processoParaExcluir}
+        item={processoParaExcluir}
         onConfirmar={handleExcluir}
         onCancelar={cancelarExclusao}
       />

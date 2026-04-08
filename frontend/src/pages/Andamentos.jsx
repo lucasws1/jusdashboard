@@ -9,6 +9,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import ModalAndamento from "@/components/andamentos/ModalAndamento";
+import FormAndamento from "@/components/andamentos/FormAndamento";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,180 +23,7 @@ import {
 } from "@/api/andamentos";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { obterProcesso } from "@/api/processos";
-
-const CAMPO_VAZIO = {
-  processo_id: "",
-  data_andamento: "",
-  descricao: "",
-  tipo: "",
-};
-
-// Formulário modal criação e edição
-function FormAndamento({ valores, onChange, erro }) {
-  const campo = (id, label, placeholder, type = "text") => (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type={type}
-        placeholder={placeholder}
-        value={valores[id]}
-        onChange={(e) => onChange(id, e.target.value)}
-        aria-invalid={
-          id === "processo_id" || id === "data_andamento" || id === "descricao"
-            ? !!erro
-            : false
-        }
-      />
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col gap-4">
-      {erro && (
-        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-          {erro}
-        </p>
-      )}
-      {campo("processo_id", "Processo ID *", "Selecione o processo")}
-      {campo(
-        "data_andamento",
-        "Data do Andamento *",
-        "Insira a data do andamento",
-        "date",
-      )}
-      {campo("descricao", "Descrição *", "Descreva o andamento", "textarea")}
-      {campo("tipo", "Tipo", "Insira o tipo do andamento")}
-    </div>
-  );
-}
-
-// Modal de criação e edição
-function ModalAndamento({ aberto, onFechar, andamentoEditando, onSalvar }) {
-  const [valores, setValores] = useState(CAMPO_VAZIO);
-  const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState("");
-
-  useEffect(() => {
-    if (aberto) {
-      setValores(andamentoEditando ?? CAMPO_VAZIO);
-      setErro("");
-    }
-  }, [aberto, andamentoEditando]);
-
-  const handleChange = (campo, valor) => {
-    setValores((v) => ({ ...v, [campo]: valor }));
-    if (
-      campo === "processo_id" ||
-      campo === "descricao" ||
-      campo === "data_andamento"
-    )
-      setErro("");
-  };
-
-  const handleSalvar = async () => {
-    if (
-      !valores.processo_id ||
-      !valores.data_andamento.trim() ||
-      !valores.descricao.trim()
-    ) {
-      setErro("Preencha os campos obrigatórios.");
-      return;
-    }
-
-    setSalvando(true);
-    setErro("");
-    try {
-      await onSalvar(valores);
-      onFechar();
-    } catch (error) {
-      setErro(
-        error.response?.data?.error || "Ocorreu um erro ao salvar o andamento.",
-      );
-    } finally {
-      setSalvando(false);
-    }
-  };
-
-  return (
-    <Dialog open={aberto} onOpenChange={(v) => !v && onFechar()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {andamentoEditando ? "Editar Andamento" : "Novo Andamento"}
-          </DialogTitle>
-        </DialogHeader>
-        <FormAndamento valores={valores} onChange={handleChange} erro={erro} />
-        <DialogFooter>
-          <Button variant="outline" onClick={onFechar} disabled={salvando}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSalvar} disabled={salvando}>
-            {salvando && <Loader2 className="animate-spin" />}
-            {salvando ? "Salvando..." : "Salvar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// Modal de confirmação de exclusão
-function ModalConfirmarExclusao({ andamento, onConfirmar, onCancelar }) {
-  const [excluindo, setExcluindo] = useState(false);
-  const [erro, setErro] = useState("");
-
-  const handleConfirmar = async () => {
-    setExcluindo(true);
-    setErro("");
-    try {
-      await onConfirmar();
-    } catch (error) {
-      setErro(
-        error.response?.data?.error ??
-          "Ocorreu um erro ao excluir o andamento.",
-      );
-      setExcluindo(false);
-    }
-  };
-
-  return (
-    <Dialog open={!!andamento} onOpenChange={(v) => !v && onCancelar()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Excluir Cliente</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">
-            Tem certeza que deseja excluir{" "}
-            <span className="font-medium text-foreground">
-              {andamento?.descricao}
-            </span>
-            ? Essa ação não pode ser desfeita.
-          </p>
-          {erro && (
-            <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-              {erro}
-            </p>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancelar} disabled={excluindo}>
-            Cancelar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirmar}
-            disabled={excluindo}
-          >
-            {excluindo && <Loader2 className="animate-spin" />}
-            {excluindo ? "Excluindo..." : "Excluir"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+import ModalConfirmarExclusao from "@/components/ModalConfirmarExclusao";
 
 // Página principal de andamentos
 export default function Andamentos() {
@@ -402,7 +231,7 @@ export default function Andamentos() {
       />
 
       <ModalConfirmarExclusao
-        andamento={andamentoParaExcluir}
+        item={andamentoParaExcluir}
         onConfirmar={handleExcluir}
         onCancelar={cancelarExclusao}
       />
