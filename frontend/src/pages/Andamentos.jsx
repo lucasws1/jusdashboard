@@ -2,18 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useModal } from "@/hooks/useModal";
 import { Search, Plus, Pencil, Trash2, Loader2, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import ModalAndamento from "@/components/andamentos/ModalAndamento";
-import FormAndamento from "@/components/andamentos/FormAndamento";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 import {
   atualizarAndamento,
@@ -23,7 +13,7 @@ import {
 } from "@/api/andamentos";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { obterProcesso } from "@/api/processos";
-import ModalConfirmarExclusao from "@/components/ModalConfirmarExclusao";
+import ModalConfirmarExclusao from "@/components/shared/ModalConfirmarExclusao";
 
 // Página principal de andamentos
 export default function Andamentos() {

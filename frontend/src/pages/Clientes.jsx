@@ -25,10 +25,9 @@ import {
   deletarCliente,
 } from "@/api/clientes";
 import { Link, useNavigate } from "react-router-dom";
-import ModalConfirmarExclusao from "@/components/ModalConfirmarExclusao";
+import ModalConfirmarExclusao from "@/components/shared/ModalConfirmarExclusao";
 import ModalCliente from "@/components/clientes/ModalCliente";
 
-// ── Página principal ─────────────────────────────────────────────────────────
 export default function Clientes() {
   const [clientes, setClientes] = useState([]);
   const [busca, setBusca] = useState("");
@@ -165,7 +164,7 @@ export default function Clientes() {
                   className="border-t border-border hover:bg-muted/30 transition-colors"
                 >
                   <td className="px-4 py-3 font-medium">
-                    <Link to={`/processos?cliente_id=${c.id}`}>{c.nome}</Link>
+                    <Link to={`/clientes/${c.id}`}>{c.nome}</Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {c.cpf_cnpj || "—"}
@@ -204,11 +203,9 @@ export default function Clientes() {
                         <DropdownMenuContent>
                           <DropdownMenuGroup>
                             <DropdownMenuItem
-                              onClick={() =>
-                                navigate(`/processos?cliente_id=${c.id}`)
-                              }
+                              onClick={() => navigate(`/clientes/${c.id}`)}
                             >
-                              Ver Processos
+                              Ver Detalhes
                             </DropdownMenuItem>
                           </DropdownMenuGroup>
                         </DropdownMenuContent>

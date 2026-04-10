@@ -5,6 +5,7 @@ import Processos from "./pages/Processos";
 import Prazos from "./pages/Prazos";
 import Andamentos from "./pages/Andamentos";
 import DetalhesProcesso from "./pages/DetalhesProcesso";
+import DetalhesCliente from "./pages/DetalhesCliente";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/clientes" replace />} />
             <Route path="/clientes" element={<Clientes />} />
+            <Route path="/clientes/:id" element={<DetalhesCliente />} />
             <Route path="/processos" element={<Processos />} />
             <Route path="/processos/:id" element={<DetalhesProcesso />} />
             <Route path="/prazos" element={<Prazos />} />

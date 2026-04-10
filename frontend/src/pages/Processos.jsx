@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState, useCallback } from "react";
 import { useModal } from "@/hooks/useModal";
-import ModalConfirmarExclusao from "@/components/ModalConfirmarExclusao";
+import ModalConfirmarExclusao from "@/components/shared/ModalConfirmarExclusao";
 import {
   Search,
   Plus,
@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/select";
 import ModalProcesso from "@/components/processos/ModalProcesso";
 
-// Página principal
 export default function Processos() {
   const [processos, setProcessos] = useState([]);
   const [clientes, setClientes] = useState([]);

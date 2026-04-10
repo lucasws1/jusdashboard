@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { atualizarPrazo, criarPrazo, listarPrazos } from "@/api/prazos";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { listarProcessos, obterProcesso } from "@/api/processos";
-import ModalConfirmarExclusao from "@/components/ModalConfirmarExclusao";
+import ModalConfirmarExclusao from "@/components/shared/ModalConfirmarExclusao";
 import ModalPrazo from "@/components/prazos/ModalPrazo";
 
 function toApiDate(date) {
@@ -61,7 +61,6 @@ function DatePickerFiltro({ label, value, onChange }) {
   );
 }
 
-// Página principal
 export default function Prazos() {
   const [searchParams] = useSearchParams();
   const processoIdFiltro = searchParams.get("processo_id");
