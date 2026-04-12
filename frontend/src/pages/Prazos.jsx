@@ -8,22 +8,56 @@ import {
   Loader2,
   UserX,
   CalendarIcon,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { atualizarPrazo, criarPrazo, listarPrazos } from "@/api/prazos";
+import {
+  atualizarPrazo,
+  criarPrazo,
+  deletarPrazo,
+  listarPrazos,
+} from "@/api/prazos";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { listarProcessos, obterProcesso } from "@/api/processos";
 import ModalConfirmarExclusao from "@/components/shared/ModalConfirmarExclusao";
 import ModalPrazo from "@/components/prazos/ModalPrazo";
+
+const TIPOS_PRAZO = [
+  "audiência",
+  "recurso",
+  "contrarrazões",
+  "laudo pericial",
+  "manifestação",
+  "contestação",
+  "embargos",
+  "petição",
+  "outros",
+];
+
+const STATUS_CORES = {
+  pendente: "default",
+  concluido: "secondary",
+  cancelado: "outline",
+};
 
 function toApiDate(date) {
   return date ? format(date, "yyyy-MM-dd") : "";
@@ -31,8 +65,8 @@ function toApiDate(date) {
 
 function DatePickerFiltro({ label, value, onChange }) {
   return (
-    <div className="flex items-center gap-1">
-      <span className="text-muted-foreground">{label}</span>
+    <div className="flex items-center gap-1.5">
+      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -57,6 +91,16 @@ function DatePickerFiltro({ label, value, onChange }) {
           />
         </PopoverContent>
       </Popover>
+      {value && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => onChange(undefined)}
+          title="Limpar data"
+        >
+          <X className="size-3.5" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -66,13 +110,17 @@ export default function Prazos() {
   const processoIdFiltro = searchParams.get("processo_id");
 
   const [prazos, setPrazos] = useState([]);
-  const [busca, setBusca] = useState("");
-  const [dataInicio, setDataInicio] = useState(undefined);
-  const [dataFim, setDataFim] = useState(undefined);
+  const [processos, setProcessos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
   const [processoTitulo, setProcessoTitulo] = useState("");
-  const [processos, setProcessos] = useState([]);
+
+  // filtros
+  const [statusFiltro, setStatusFiltro] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState("");
+  const [dataInicio, setDataInicio] = useState(undefined);
+  const [dataFim, setDataFim] = useState(undefined);
+
   const navigate = useNavigate();
 
   const {
@@ -86,41 +134,36 @@ export default function Prazos() {
     cancelarExclusao,
   } = useModal();
 
-  const carregar = useCallback(
-    async (termosBusca = "", inicio = "", fim = "") => {
-      setCarregando(true);
-      setErroLista("");
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    setErroLista("");
+    try {
+      const { data } = await listarPrazos({
+        processo_id: processoIdFiltro ?? undefined,
+        status: statusFiltro || undefined,
+        tipo: tipoFiltro || undefined,
+        data_inicio: toApiDate(dataInicio) || undefined,
+        data_fim: toApiDate(dataFim) || undefined,
+      });
 
-      try {
-        const { data } = await listarPrazos({
-          processo_id: processoIdFiltro ?? undefined,
-          status: termosBusca.trim() || undefined,
-          data_inicio: inicio || undefined,
-          data_fim: fim || undefined,
-        });
-        if (processoIdFiltro) {
-          const res = await obterProcesso(processoIdFiltro);
-          setProcessoTitulo(res.data.numero_processo);
-        }
-        setProcessos((await listarProcessos()).data);
-
-        setPrazos(data);
-      } catch (error) {
-        setErroLista("Não foi possível carregar os prazos.");
-      } finally {
-        setCarregando(false);
+      if (processoIdFiltro) {
+        const res = await obterProcesso(processoIdFiltro);
+        setProcessoTitulo(res.data.numero_processo);
       }
-    },
-    [processoIdFiltro],
-  );
+
+      setProcessos((await listarProcessos()).data);
+      setPrazos(data);
+    } catch {
+      setErroLista("Não foi possível carregar os prazos.");
+    } finally {
+      setCarregando(false);
+    }
+  }, [processoIdFiltro, statusFiltro, tipoFiltro, dataInicio, dataFim]);
 
   useEffect(() => {
-    const id = setTimeout(
-      () => carregar(busca, toApiDate(dataInicio), toApiDate(dataFim)),
-      300,
-    );
+    const id = setTimeout(() => carregar(), 300);
     return () => clearTimeout(id);
-  }, [busca, dataInicio, dataFim, carregar]);
+  }, [carregar]);
 
   const handleSalvar = async (dados) => {
     if (prazoEditando) {
@@ -128,13 +171,22 @@ export default function Prazos() {
     } else {
       await criarPrazo(dados);
     }
-    await carregar(busca, toApiDate(dataInicio), toApiDate(dataFim));
+    await carregar();
   };
 
   const handleExcluir = async () => {
     await deletarPrazo(prazoParaExcluir.id);
     cancelarExclusao();
-    await carregar(busca, toApiDate(dataInicio), toApiDate(dataFim));
+    await carregar();
+  };
+
+  const temFiltroAtivo = statusFiltro || tipoFiltro || dataInicio || dataFim;
+
+  const limparFiltros = () => {
+    setStatusFiltro("");
+    setTipoFiltro("");
+    setDataInicio(undefined);
+    setDataFim(undefined);
   };
 
   return (
@@ -143,7 +195,7 @@ export default function Prazos() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">
-            Prazos {processoTitulo && ` - processo n. ${processoTitulo}`}
+            Prazos{processoTitulo && ` — processo n. ${processoTitulo}`}
           </h1>
           <p className="text-sm text-muted-foreground">
             Gerencie os prazos do escritório.
@@ -154,25 +206,116 @@ export default function Prazos() {
           Novo prazo
         </Button>
       </div>
-      {/* Busca e filtros */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por ID do processo e/ou status..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
+
+      {/* Filtros */}
+      <div className="flex flex-col gap-3">
+        {/* Linha 1: tipo e status */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={tipoFiltro} onValueChange={setTipoFiltro}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Tipo de prazo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Tipo</SelectLabel>
+                {TIPOS_PRAZO.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Status</SelectLabel>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="concluido">Concluído</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <DatePickerFiltro
+              label="De"
+              value={dataInicio}
+              onChange={setDataInicio}
+            />
+            <DatePickerFiltro
+              label="Até"
+              value={dataFim}
+              onChange={setDataFim}
+            />
+          </div>
+
+          {temFiltroAtivo && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={limparFiltros}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5 mr-1" />
+              Limpar filtros
+            </Button>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <DatePickerFiltro
-            label="De"
-            value={dataInicio}
-            onChange={setDataInicio}
-          />
-          <DatePickerFiltro label="Até" value={dataFim} onChange={setDataFim} />
-        </div>
+
+        {/* Tags de filtros ativos */}
+        {temFiltroAtivo && (
+          <div className="flex flex-wrap gap-1.5">
+            {tipoFiltro && (
+              <Badge variant="secondary" className="gap-1">
+                Tipo: {tipoFiltro}
+                <button
+                  onClick={() => setTipoFiltro("")}
+                  className="ml-0.5 hover:opacity-70"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            )}
+            {statusFiltro && (
+              <Badge variant="secondary" className="gap-1">
+                Status: {statusFiltro}
+                <button
+                  onClick={() => setStatusFiltro("")}
+                  className="ml-0.5 hover:opacity-70"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            )}
+            {dataInicio && (
+              <Badge variant="secondary" className="gap-1">
+                De: {format(dataInicio, "dd/MM/yyyy")}
+                <button
+                  onClick={() => setDataInicio(undefined)}
+                  className="ml-0.5 hover:opacity-70"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            )}
+            {dataFim && (
+              <Badge variant="secondary" className="gap-1">
+                Até: {format(dataFim, "dd/MM/yyyy")}
+                <button
+                  onClick={() => setDataFim(undefined)}
+                  className="ml-0.5 hover:opacity-70"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabela */}
@@ -182,7 +325,8 @@ export default function Prazos() {
             <tr>
               <th className="text-left px-4 py-3 font-medium">Processo n.</th>
               <th className="text-left px-4 py-3 font-medium">Descrição</th>
-              <th className="text-left px-4 py-3 font-medium">Data/Prazo</th>
+              <th className="text-left px-4 py-3 font-medium">Tipo</th>
+              <th className="text-left px-4 py-3 font-medium">Data / Prazo</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3" />
             </tr>
@@ -191,7 +335,7 @@ export default function Prazos() {
             {carregando && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-10 text-center text-muted-foreground"
                 >
                   <Loader2 className="animate-spin mx-auto size-5" />
@@ -199,24 +343,25 @@ export default function Prazos() {
               </tr>
             )}
 
-            {carregando && erroLista && (
+            {!carregando && erroLista && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-10 text-center text-destructive"
                 >
                   {erroLista}
                 </td>
               </tr>
             )}
+
             {!carregando && !erroLista && prazos.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center">
+                <td colSpan={6} className="px-4 py-12 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <UserX className="size-8" />
                     <span className="text-sm">
-                      {busca
-                        ? "Nenhum prazo encontrado para essa busca."
+                      {temFiltroAtivo
+                        ? "Nenhum prazo encontrado para os filtros aplicados."
                         : "Nenhum prazo cadastrado ainda."}
                     </span>
                   </div>
@@ -225,52 +370,66 @@ export default function Prazos() {
             )}
 
             {!carregando &&
-              prazos.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-t border-border hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium">
-                    <Button
-                      onClick={() => navigate(`/processos/${p.id}`)}
-                      variant="link"
-                    >
-                      {processos.find((proc) => proc.id === p.processo_id)
-                        ?.numero_processo || "Processo não encontrado"}
-                    </Button>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {p.descricao}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(p.data_prazo).toLocaleDateString("pt-BR")}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {p.status}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
+              prazos.map((p) => {
+                const proc = processos.find((pr) => pr.id === p.processo_id);
+                return (
+                  <tr
+                    key={p.id}
+                    className="border-t border-border hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium">
                       <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => abrirEdicao(p)}
-                        title="Editar"
+                        variant="link"
+                        className="h-auto p-0 font-medium"
+                        onClick={() => navigate(`/processos/${p.processo_id}`)}
                       >
-                        <Pencil />
+                        {proc?.numero_processo || `#${p.processo_id}`}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => confirmarExclusao(p)}
-                        title="Excluir"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {p.descricao}
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.tipo ? (
+                        <Badge variant="secondary">
+                          {p.tipo.charAt(0).toUpperCase() + p.tipo.slice(1)}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                      {new Date(p.data_prazo).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={STATUS_CORES[p.status] ?? "outline"}>
+                        {p.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => abrirEdicao(p)}
+                          title="Editar"
+                        >
+                          <Pencil />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => confirmarExclusao(p)}
+                          title="Excluir"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
@@ -283,6 +442,7 @@ export default function Prazos() {
       )}
 
       <Button
+        variant="outline"
         onClick={() => navigate(-1)}
         className="cursor-pointer hover:underline w-24 mx-auto"
       >

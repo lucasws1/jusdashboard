@@ -6,6 +6,7 @@ import Prazos from "./pages/Prazos";
 import Andamentos from "./pages/Andamentos";
 import DetalhesProcesso from "./pages/DetalhesProcesso";
 import DetalhesCliente from "./pages/DetalhesCliente";
+import Home from "./pages/Home";
 
 export default function App() {
   return (
@@ -14,7 +15,7 @@ export default function App() {
         <Sidebar />
         <main className="flex-1 overflow-auto">
           <Routes>
-            <Route path="/" element={<Navigate to="/clientes" replace />} />
+            <Route path="/" element={<Home />} />
             <Route path="/clientes" element={<Clientes />} />
             <Route path="/clientes/:id" element={<DetalhesCliente />} />
             <Route path="/processos" element={<Processos />} />

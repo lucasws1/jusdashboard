@@ -1,9 +1,10 @@
 import { useTheme } from "@/hooks/useTheme";
-import { Scale, Users, FolderOpen, Clock } from "lucide-react";
+import { Scale, Users, FolderOpen, Clock, LayoutDashboard } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Button } from "./ui/button";
 
 const navItems = [
+  { to: "/", label: "Painel", icon: LayoutDashboard, end: true },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/processos", label: "Processos", icon: FolderOpen },
   { to: "/prazos", label: "Prazos", icon: Clock },
@@ -21,10 +22,11 @@ export default function Sidebar() {
         </span>
       </div>
       <nav className="flex flex-col gap-0.5 p-3 flex-1">
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
+            end={end}
             className={({ isActive }) =>
               `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
@@ -38,7 +40,7 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="flex items-center justify-center p-4 ">
+      <div className="flex items-center justify-center p-4">
         <Button variant="secondary" onClick={alternarTema}>
           Modo {tema === "dark" ? "☀️ Claro" : "🌙 Escuro"}
         </Button>
