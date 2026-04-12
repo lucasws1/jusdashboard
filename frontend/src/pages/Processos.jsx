@@ -289,7 +289,6 @@ export default function Processos() {
       )}
 
       <Button
-        variant="outline"
         onClick={() => navigate(-1)}
         className="cursor-pointer hover:underline w-24 mx-auto"
       >

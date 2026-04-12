@@ -1,0 +1,3 @@
+ALTER TABLE prazos
+ADD COLUMN tipo VARCHAR(100) NULL
+AFTER descricao;

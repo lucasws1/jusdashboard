@@ -8,12 +8,14 @@ import {
 } from "@/components/ui/dialog";
 import FormPrazo from "./FormPrazo";
 import { Button } from "../ui/button";
+import { Loader2 } from "lucide-react";
 
 const CAMPO_VAZIO = {
   processo_id: "",
   descricao: "",
+  tipo: "",
   data_prazo: "",
-  status: "",
+  status: "pendente",
   observacoes: "",
 };
 
@@ -22,6 +24,7 @@ export default function ModalPrazo({
   onFechar,
   prazoEditando,
   onSalvar,
+  ocultarProcessoId = false,
 }) {
   const [valores, setValores] = useState(CAMPO_VAZIO);
   const [salvando, setSalvando] = useState(false);
@@ -36,25 +39,24 @@ export default function ModalPrazo({
 
   const handleChange = (campo, valor) => {
     setValores((v) => ({ ...v, [campo]: valor }));
-    if (
-      campo === "processo_id" ||
-      campo === "descricao" ||
-      campo === "data_prazo" ||
-      campo === "status"
-    )
-      setErro("");
+    setErro("");
   };
 
   const handleSalvar = async () => {
-    if (
-      !valores.processo_id ||
-      !valores.descricao ||
-      !valores.data_prazo ||
-      !valores.status
-    ) {
-      setErro(
-        'Os campos "processo_id", "descricao", "data_prazo" e "status" são obrigatórios.',
-      );
+    if (!ocultarProcessoId && !valores.processo_id) {
+      setErro('O campo "processo" é obrigatório.');
+      return;
+    }
+    if (!valores.descricao?.trim()) {
+      setErro('O campo "descrição" é obrigatório.');
+      return;
+    }
+    if (!valores.data_prazo) {
+      setErro('O campo "data do prazo" é obrigatório.');
+      return;
+    }
+    if (!valores.status) {
+      setErro('O campo "status" é obrigatório.');
       return;
     }
 
@@ -79,7 +81,12 @@ export default function ModalPrazo({
             {prazoEditando ? "Editar prazo" : "Novo prazo"}
           </DialogTitle>
         </DialogHeader>
-        <FormPrazo valores={valores} onChange={handleChange} erro={erro} />
+        <FormPrazo
+          valores={valores}
+          onChange={handleChange}
+          erro={erro}
+          ocultarProcessoId={ocultarProcessoId}
+        />
         <DialogFooter>
           <Button variant="outline" onClick={onFechar} disabled={salvando}>
             Cancelar

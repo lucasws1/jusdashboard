@@ -2,6 +2,18 @@ const pool = require("../config/db");
 
 const STATUS_VALIDOS = ["pendente", "concluido", "cancelado"];
 
+const TIPOS_VALIDOS = [
+  "audiência",
+  "recurso",
+  "contrarrazões",
+  "laudo pericial",
+  "manifestação",
+  "contestação",
+  "embargos",
+  "petição",
+  "outros",
+];
+
 const formatarData = (data) => {
   if (!data) return null;
   return new Date(data).toISOString().split("T")[0];
@@ -10,7 +22,7 @@ const formatarData = (data) => {
 // GET /api/prazos?processo_id=X&status=pendente&data_inicio=YYYY-MM-DD&data_fim=YYYY-MM-DD
 exports.listarPrazos = async (req, res, next) => {
   try {
-    const { processo_id, status, data_inicio, data_fim } = req.query;
+    const { processo_id, status, tipo, data_inicio, data_fim } = req.query;
 
     if (status && !STATUS_VALIDOS.includes(status)) {
       return res
@@ -48,6 +60,11 @@ exports.listarPrazos = async (req, res, next) => {
     if (status) {
       sql += " AND pr.status = ?";
       params.push(status);
+    }
+
+    if (tipo) {
+      sql += " AND pr.tipo = ?";
+      params.push(tipo);
     }
 
     if (data_inicio) {
@@ -89,7 +106,9 @@ exports.proximos = async (req, res, next) => {
       [dias],
     );
     res.json(rows);
-  } catch (err) {}
+  } catch (err) {
+    next(err);
+  }
 };
 
 // GET /api/prazos/:id
@@ -110,25 +129,24 @@ exports.buscarPrazo = async (req, res, next) => {
 // POST /api/prazos
 exports.criarPrazo = async (req, res, next) => {
   try {
-    const { processo_id, descricao, data_prazo, status, observacoes } =
+    const { processo_id, descricao, tipo, data_prazo, status, observacoes } =
       req.body;
+
     if (!processo_id)
       return res
         .status(400)
         .json({ error: 'Campo "processo_id" é obrigatório.' });
-
     if (!descricao)
       return res
         .status(400)
         .json({ error: 'Campo "descrição" é obrigatório.' });
-
     if (!data_prazo)
       return res
         .status(400)
         .json({ error: 'Campo "data_prazo" é obrigatório.' });
 
     const statusFinal = status || "pendente";
-    if (!STATUS_VALIDOS.includes(status)) {
+    if (!STATUS_VALIDOS.includes(statusFinal)) {
       return res
         .status(400)
         .json({ error: `Status inválidos. Use: ${STATUS_VALIDOS.join(", ")}` });
@@ -143,8 +161,15 @@ exports.criarPrazo = async (req, res, next) => {
       return res.status(400).json({ error: "Processo não encontrado." });
 
     const [result] = await pool.query(
-      "INSERT INTO prazos (processo_id, descricao, data_prazo, status, observacoes) VALUES (?, ?, ?, ?, ?)",
-      [processo_id, descricao, formatarData(data_prazo), statusFinal, observacoes || null],
+      "INSERT INTO prazos (processo_id, descricao, tipo, data_prazo, status, observacoes) VALUES (?, ?, ?, ?, ?)",
+      [
+        processo_id,
+        descricao,
+        tipo,
+        formatarData(data_prazo),
+        statusFinal,
+        observacoes || null,
+      ],
     );
 
     const [rows] = await pool.query("SELECT * FROM prazos WHERE id = ?", [
@@ -161,7 +186,8 @@ exports.criarPrazo = async (req, res, next) => {
 exports.atualizarPrazo = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { descricao, data_prazo, status, observacoes } = req.body;
+    const { descricao, tipo, data_prazo, status, observacoes } = req.body;
+
     if (!descricao)
       return res
         .status(400)
@@ -184,8 +210,15 @@ exports.atualizarPrazo = async (req, res, next) => {
       return res.status(404).json({ error: "Prazo não encontrado." });
 
     await pool.query(
-      "UPDATE prazos SET descricao = ?, data_prazo = ?, status = ?, observacoes = ? WHERE id = ?",
-      [descricao, formatarData(data_prazo), statusFinal, observacoes || null, id],
+      "UPDATE prazos SET descricao = ?, tipo = ?, data_prazo = ?, status = ?, observacoes = ? WHERE id = ?",
+      [
+        descricao,
+        tipo || null,
+        formatarData(data_prazo),
+        statusFinal,
+        observacoes || null,
+        id,
+      ],
     );
 
     const [rows] = await pool.query("SELECT * FROM prazos WHERE id = ?", [id]);

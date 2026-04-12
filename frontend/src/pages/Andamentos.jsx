@@ -205,7 +205,6 @@ export default function Andamentos() {
         </p>
       )}
       <Button
-        variant="outline"
         onClick={() => navigate(-1)}
         className="cursor-pointer hover:underline w-24 mx-auto"
       >
