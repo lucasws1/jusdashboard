@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
-import { Scale, Users, FolderOpen, Clock, LayoutDashboard, LogOut } from "lucide-react";
+import { Scale, Users, FolderOpen, Clock, LayoutDashboard, LogOut, Search } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import BuscaGlobal from "./BuscaGlobal";
 
 const navItems = [
   { to: "/", label: "Painel", icon: LayoutDashboard, end: true },
@@ -15,6 +17,19 @@ export default function Sidebar() {
   const { tema, alternarTema } = useTheme();
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
+  const [buscaAberta, setBuscaAberta] = useState(false);
+
+  // Atalho global Ctrl+K / Cmd+K
+  useEffect(() => {
+    function handler(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setBuscaAberta(true);
+      }
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   function handleLogout() {
     logout();
@@ -48,6 +63,20 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      {/* Botão de busca global */}
+      <div className="px-3 pb-2">
+        <button
+          onClick={() => setBuscaAberta(true)}
+          className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <Search className="size-3.5 shrink-0" />
+          <span className="flex-1 text-left">Buscar...</span>
+          <kbd className="hidden sm:inline-flex items-center rounded border border-border bg-muted px-1 py-0.5 text-[10px] font-mono">
+            ⌘K
+          </kbd>
+        </button>
+      </div>
+
       <div className="flex flex-col gap-2 p-4 border-t border-border">
         {usuario && (
           <p className="text-xs text-muted-foreground truncate px-1">
@@ -62,6 +91,8 @@ export default function Sidebar() {
           Sair
         </Button>
       </div>
+
+      <BuscaGlobal aberto={buscaAberta} onFechar={() => setBuscaAberta(false)} />
     </aside>
   );
 }

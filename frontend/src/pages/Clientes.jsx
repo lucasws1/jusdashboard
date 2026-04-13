@@ -15,7 +15,11 @@ import {
   Loader2,
   UserX,
   ChevronDown,
+  Download,
+  FileText,
+  Table2,
 } from "lucide-react";
+import { exportarPDF, exportarExcel } from "@/lib/exportar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -90,10 +94,55 @@ export default function Clientes() {
             Gerencie os clientes do escritório.
           </p>
         </div>
-        <Button onClick={abrirNovo}>
-          <Plus />
-          Novo cliente
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={clientes.length === 0}>
+                <Download className="size-4" />
+                Exportar
+                <ChevronDown className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const cabecalhos = ["Nome", "CPF/CNPJ", "E-mail", "Telefone"];
+                    const linhas = clientes.map((c) => [
+                      c.nome || "—",
+                      c.cpf_cnpj || "—",
+                      c.email || "—",
+                      c.telefone || "—",
+                    ]);
+                    exportarPDF(cabecalhos, linhas, "Clientes", "clientes");
+                  }}
+                >
+                  <FileText className="size-4" />
+                  Exportar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const cabecalhos = ["Nome", "CPF/CNPJ", "E-mail", "Telefone"];
+                    const linhas = clientes.map((c) => [
+                      c.nome || "",
+                      c.cpf_cnpj || "",
+                      c.email || "",
+                      c.telefone || "",
+                    ]);
+                    exportarExcel(cabecalhos, linhas, "clientes", "Clientes");
+                  }}
+                >
+                  <Table2 className="size-4" />
+                  Exportar Excel
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={abrirNovo}>
+            <Plus />
+            Novo cliente
+          </Button>
+        </div>
       </div>
 
       {/* Busca */}

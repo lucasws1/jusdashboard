@@ -17,7 +17,11 @@ import {
   UserX,
   ChevronDown,
   LinkIcon,
+  Download,
+  FileText,
+  Table2,
 } from "lucide-react";
+import { exportarPDF, exportarExcel } from "@/lib/exportar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -113,10 +117,61 @@ export default function Processos() {
             Gerencie os processos do escritório.
           </p>
         </div>
-        <Button onClick={abrirNovo}>
-          <Plus />
-          Novo Processo
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={processos.length === 0}>
+                <Download className="size-4" />
+                Exportar
+                <ChevronDown className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const cabecalhos = ["Cliente", "Número", "Título", "Área", "Tipo", "Vara/Tribunal", "Status"];
+                    const linhas = processos.map((p) => [
+                      clientes.find((c) => c.id === p.cliente_id)?.nome || String(p.cliente_id),
+                      p.numero_processo || "—",
+                      p.titulo || "—",
+                      p.area || "—",
+                      p.tipo || "—",
+                      p.vara_tribunal || "—",
+                      p.status || "—",
+                    ]);
+                    exportarPDF(cabecalhos, linhas, "Processos", "processos");
+                  }}
+                >
+                  <FileText className="size-4" />
+                  Exportar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const cabecalhos = ["Cliente", "Número", "Título", "Área", "Tipo", "Vara/Tribunal", "Status"];
+                    const linhas = processos.map((p) => [
+                      clientes.find((c) => c.id === p.cliente_id)?.nome || String(p.cliente_id),
+                      p.numero_processo || "",
+                      p.titulo || "",
+                      p.area || "",
+                      p.tipo || "",
+                      p.vara_tribunal || "",
+                      p.status || "",
+                    ]);
+                    exportarExcel(cabecalhos, linhas, "processos", "Processos");
+                  }}
+                >
+                  <Table2 className="size-4" />
+                  Exportar Excel
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={abrirNovo}>
+            <Plus />
+            Novo Processo
+          </Button>
+        </div>
       </div>
       {/* Busca */}
       <div className="relative flex items-center gap-2">

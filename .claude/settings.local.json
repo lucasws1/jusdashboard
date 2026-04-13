@@ -4,7 +4,8 @@
       "Bash(npx shadcn:*)",
       "Bash(cat /home/lucasws/coding/javascript/jusdashboard/frontend/src/api/*.js)",
       "Bash(npm install:*)",
-      "Bash(find /home/lucasws/coding/javascript/jusdashboard -maxdepth 1 -name \"package.json\" -exec cat {} \\\\;)"
+      "Bash(find /home/lucasws/coding/javascript/jusdashboard -maxdepth 1 -name \"package.json\" -exec cat {} \\\\;)",
+      "Bash(npm run:*)"
     ]
   }
 }

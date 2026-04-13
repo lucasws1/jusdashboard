@@ -1,11 +1,13 @@
 import api from "./axios";
 
-export const listarPrazos = (busca) => {
-  const { processo_id, status, data_inicio, data_fim } = busca;
+export const listarPrazos = (filtros = {}) => {
+  const { processo_id, status, tipo, busca, data_inicio, data_fim } = filtros;
   const params = {};
 
   if (processo_id) params.processo_id = processo_id;
   if (status) params.status = status;
+  if (tipo) params.tipo = tipo;
+  if (busca) params.busca = busca;
   if (data_inicio) params.data_inicio = data_inicio;
   if (data_fim) params.data_fim = data_fim;
 

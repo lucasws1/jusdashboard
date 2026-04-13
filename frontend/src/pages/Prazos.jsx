@@ -9,7 +9,19 @@ import {
   UserX,
   CalendarIcon,
   X,
+  Download,
+  FileText,
+  Table2,
+  ChevronDown,
 } from "lucide-react";
+import { exportarPDF, exportarExcel } from "@/lib/exportar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -201,10 +213,63 @@ export default function Prazos() {
             Gerencie os prazos do escritório.
           </p>
         </div>
-        <Button onClick={abrirNovo}>
-          <Plus />
-          Novo prazo
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={prazos.length === 0}>
+                <Download className="size-4" />
+                Exportar
+                <ChevronDown className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const cabecalhos = ["Processo n.", "Descrição", "Tipo", "Data/Prazo", "Status"];
+                    const linhas = prazos.map((p) => {
+                      const proc = processos.find((pr) => pr.id === p.processo_id);
+                      return [
+                        proc?.numero_processo || `#${p.processo_id}`,
+                        p.descricao || "—",
+                        p.tipo || "—",
+                        new Date(p.data_prazo).toLocaleDateString("pt-BR"),
+                        p.status || "—",
+                      ];
+                    });
+                    exportarPDF(cabecalhos, linhas, "Prazos", "prazos");
+                  }}
+                >
+                  <FileText className="size-4" />
+                  Exportar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const cabecalhos = ["Processo n.", "Descrição", "Tipo", "Data/Prazo", "Status"];
+                    const linhas = prazos.map((p) => {
+                      const proc = processos.find((pr) => pr.id === p.processo_id);
+                      return [
+                        proc?.numero_processo || `#${p.processo_id}`,
+                        p.descricao || "",
+                        p.tipo || "",
+                        new Date(p.data_prazo).toLocaleDateString("pt-BR"),
+                        p.status || "",
+                      ];
+                    });
+                    exportarExcel(cabecalhos, linhas, "prazos", "Prazos");
+                  }}
+                >
+                  <Table2 className="size-4" />
+                  Exportar Excel
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={abrirNovo}>
+            <Plus />
+            Novo prazo
+          </Button>
+        </div>
       </div>
 
       {/* Filtros */}

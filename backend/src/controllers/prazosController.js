@@ -19,10 +19,11 @@ const formatarData = (data) => {
   return new Date(data).toISOString().split("T")[0];
 };
 
-// GET /api/prazos?processo_id=X&status=pendente&data_inicio=YYYY-MM-DD&data_fim=YYYY-MM-DD
+// GET /api/prazos?processo_id=X&status=pendente&tipo=audiência&busca=texto&data_inicio=YYYY-MM-DD&data_fim=YYYY-MM-DD
 exports.listarPrazos = async (req, res, next) => {
   try {
-    const { processo_id, status, tipo, data_inicio, data_fim } = req.query;
+    const { processo_id, status, tipo, busca, data_inicio, data_fim } =
+      req.query;
 
     if (status && !STATUS_VALIDOS.includes(status)) {
       return res
@@ -65,6 +66,11 @@ exports.listarPrazos = async (req, res, next) => {
     if (tipo) {
       sql += " AND pr.tipo = ?";
       params.push(tipo);
+    }
+
+    if (busca) {
+      sql += " AND pr.descricao LIKE ?";
+      params.push(`%${busca}%`);
     }
 
     if (data_inicio) {
