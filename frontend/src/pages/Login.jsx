@@ -92,9 +92,7 @@ export default function Login() {
                 />
               </div>
 
-              {erro && (
-                <p className="text-sm text-destructive">{erro}</p>
-              )}
+              {erro && <p className="text-sm text-destructive">{erro}</p>}
 
               <Button type="submit" className="w-full" disabled={carregando}>
                 {carregando && <Loader2 className="size-4 animate-spin" />}

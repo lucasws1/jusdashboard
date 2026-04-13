@@ -6,7 +6,7 @@
  *   DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
  */
 require("dotenv").config({
-  path: require("path").resolve(__dirname, "../../../.env"),
+  path: require("path").resolve(__dirname, "../../.env"),
 });
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");

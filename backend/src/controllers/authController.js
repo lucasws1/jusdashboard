@@ -26,7 +26,11 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ error: "Credenciais inválidas." });
     }
 
-    const payload = { id: usuario.id, email: usuario.email, nome: usuario.nome };
+    const payload = {
+      id: usuario.id,
+      email: usuario.email,
+      nome: usuario.nome,
+    };
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "8h",
     });
