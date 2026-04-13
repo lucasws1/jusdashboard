@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx shadcn:*)"
+      "Bash(npx shadcn:*)",
+      "Bash(cat /home/lucasws/coding/javascript/jusdashboard/frontend/src/api/*.js)",
+      "Bash(npm install:*)"
     ]
   }
 }

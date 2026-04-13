@@ -1,6 +1,7 @@
 import { useTheme } from "@/hooks/useTheme";
-import { Scale, Users, FolderOpen, Clock, LayoutDashboard } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { Scale, Users, FolderOpen, Clock, LayoutDashboard, LogOut } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 
 const navItems = [
@@ -12,6 +13,13 @@ const navItems = [
 
 export default function Sidebar() {
   const { tema, alternarTema } = useTheme();
+  const { usuario, logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
 
   return (
     <aside className="w-56 shrink-0 border-r border-border bg-sidebar flex flex-col h-screen sticky top-0">
@@ -40,9 +48,18 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="flex items-center justify-center p-4">
+      <div className="flex flex-col gap-2 p-4 border-t border-border">
+        {usuario && (
+          <p className="text-xs text-muted-foreground truncate px-1">
+            {usuario.nome}
+          </p>
+        )}
         <Button variant="secondary" onClick={alternarTema}>
           Modo {tema === "dark" ? "☀️ Claro" : "🌙 Escuro"}
+        </Button>
+        <Button variant="ghost" onClick={handleLogout} className="text-muted-foreground">
+          <LogOut className="size-4" />
+          Sair
         </Button>
       </div>
     </aside>

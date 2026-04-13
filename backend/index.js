@@ -6,9 +6,20 @@ const cors = require("cors");
 // Middlewares globais
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // lê form data
+app.use(express.urlencoded({ extended: true }));
 
-// Rotas
+// Rotas públicas
+const authRouter = require("./src/routes/auth");
+app.use("/api/auth", authRouter);
+
+// Health check (público)
+app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+// Guard — protege todas as rotas abaixo
+const verifyToken = require("./src/middleware/verifyToken");
+app.use("/api", verifyToken);
+
+// Rotas protegidas
 const clientesRouter = require("./src/routes/clientes");
 const processosRouter = require("./src/routes/processos");
 const andamentosRouter = require("./src/routes/andamentos");
@@ -17,9 +28,6 @@ app.use("/api/clientes", clientesRouter);
 app.use("/api/processos", processosRouter);
 app.use("/api/andamentos", andamentosRouter);
 app.use("/api/prazos", prazosRouter);
-
-// Health check
-app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 // Handler de erros genéricos
 app.use((err, _req, res, _next) => {
