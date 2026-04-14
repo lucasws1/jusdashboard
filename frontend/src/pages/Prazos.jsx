@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useModal } from "@/hooks/useModal";
 import {
-  Search,
   Plus,
   Pencil,
   Trash2,
   Loader2,
   UserX,
   CalendarIcon,
+  CalendarDays,
   X,
   Download,
   FileText,
@@ -52,6 +52,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { listarProcessos, obterProcesso } from "@/api/processos";
 import ModalConfirmarExclusao from "@/components/shared/ModalConfirmarExclusao";
 import ModalPrazo from "@/components/prazos/ModalPrazo";
+import PrazosCalendario from "@/components/prazos/PrazosCalendario";
 
 const TIPOS_PRAZO = [
   "audiência",
@@ -126,6 +127,7 @@ export default function Prazos() {
   const [carregando, setCarregando] = useState(true);
   const [erroLista, setErroLista] = useState("");
   const [processoTitulo, setProcessoTitulo] = useState("");
+  const [modoVisualizacao, setModoVisualizacao] = useState("tabela");
 
   // filtros
   const [statusFiltro, setStatusFiltro] = useState("");
@@ -214,6 +216,27 @@ export default function Prazos() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Toggle tabela / calendário */}
+          <div className="flex items-center border border-border rounded-lg overflow-hidden">
+            <Button
+              variant={modoVisualizacao === "tabela" ? "secondary" : "ghost"}
+              size="icon-sm"
+              className="rounded-none border-0"
+              onClick={() => setModoVisualizacao("tabela")}
+              title="Visualizar em tabela"
+            >
+              <Table2 className="size-4" />
+            </Button>
+            <Button
+              variant={modoVisualizacao === "calendario" ? "secondary" : "ghost"}
+              size="icon-sm"
+              className="rounded-none border-0 border-l border-border"
+              onClick={() => setModoVisualizacao("calendario")}
+              title="Visualizar em calendário"
+            >
+              <CalendarDays className="size-4" />
+            </Button>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" disabled={prazos.length === 0}>
@@ -383,7 +406,17 @@ export default function Prazos() {
         )}
       </div>
 
+      {/* Calendário */}
+      {modoVisualizacao === "calendario" && (
+        <PrazosCalendario
+          prazos={prazos}
+          processos={processos}
+          onEventClick={abrirEdicao}
+        />
+      )}
+
       {/* Tabela */}
+      {modoVisualizacao === "tabela" && (
       <div className="rounded-lg border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-muted-foreground">
@@ -498,8 +531,9 @@ export default function Prazos() {
           </tbody>
         </table>
       </div>
+      )}
 
-      {prazos.length > 0 && !carregando && (
+      {modoVisualizacao === "tabela" && prazos.length > 0 && !carregando && (
         <p className="text-xs text-muted-foreground">
           {prazos.length} {prazos.length === 1 ? "prazo" : "prazos"} encontrado
           {prazos.length === 1 ? "" : "s"}

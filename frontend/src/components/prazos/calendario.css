@@ -1,0 +1,208 @@
+/* =========================================================
+   react-big-calendar — tema shadcn
+   ========================================================= */
+
+/* Base */
+.rbc-calendar {
+  font-family: inherit;
+  color: var(--foreground);
+  background: transparent;
+}
+
+/* ---- VISÃO MÊS ---- */
+.rbc-month-view {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid var(--border);
+}
+
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid var(--border);
+}
+
+.rbc-header {
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.rbc-header + .rbc-header {
+  border-left: 1px solid var(--border);
+}
+
+.rbc-today {
+  background-color: var(--accent) !important;
+}
+
+.rbc-off-range-bg {
+  background: var(--muted);
+}
+
+.rbc-off-range {
+  color: var(--muted-foreground) !important;
+  opacity: 0.5;
+}
+
+.rbc-date-cell {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.rbc-date-cell > a,
+.rbc-date-cell > a:visited {
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.rbc-date-cell.rbc-now > a {
+  font-weight: 600;
+}
+
+/* ---- EVENTOS ---- */
+.rbc-event,
+.rbc-day-slot .rbc-event {
+  border-radius: calc(var(--radius) * 0.5);
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.rbc-event:focus,
+.rbc-event.rbc-selected {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.rbc-event-label {
+  display: none;
+}
+
+/* Status: pendente */
+.rbc-event.ev-pendente {
+  background-color: oklch(0.38 0.1 240) !important;
+  color: #fff !important;
+}
+.dark .rbc-event.ev-pendente {
+  background-color: oklch(0.55 0.14 240) !important;
+}
+
+/* Status: concluido */
+.rbc-event.ev-concluido {
+  background-color: oklch(0.48 0.13 145) !important;
+  color: #fff !important;
+}
+.dark .rbc-event.ev-concluido {
+  background-color: oklch(0.6 0.16 145) !important;
+}
+
+/* Status: cancelado */
+.rbc-event.ev-cancelado {
+  background-color: var(--muted) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted-foreground) !important;
+  opacity: 0.7;
+}
+
+/* "+N prazo(s)" */
+.rbc-show-more {
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  padding: 0 4px;
+}
+.rbc-show-more:hover {
+  color: var(--foreground);
+}
+
+/* ---- VISÃO AGENDA ---- */
+.rbc-agenda-view {
+  border: none;
+}
+
+.rbc-agenda-view table.rbc-agenda-table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.rbc-agenda-table thead > tr > th {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Oculta coluna "Hora" (prazos não têm hora) */
+.rbc-agenda-table thead > tr > th:nth-child(2) {
+  display: none;
+}
+
+.rbc-agenda-time-cell {
+  display: none;
+}
+
+.rbc-agenda-table tbody > tr > td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+.rbc-agenda-table tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+.rbc-agenda-table tbody > tr:hover > td {
+  background: var(--muted);
+  cursor: pointer;
+}
+
+.rbc-agenda-date-cell {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  min-width: 180px;
+  text-transform: capitalize;
+}
+
+.rbc-agenda-empty {
+  padding: 2.5rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+/* ---- POPUP ("+N more") ---- */
+.rbc-overlay {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.12);
+  padding: 4px 0;
+  z-index: 50;
+}
+
+.rbc-overlay-header {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
