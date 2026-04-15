@@ -14,6 +14,12 @@ import {
   atualizarPrazo,
   deletarPrazo,
 } from "@/api/prazos";
+import {
+  listarLancamentos,
+  criarLancamento,
+  atualizarLancamento,
+  deletarLancamento,
+} from "@/api/lancamentos";
 import { useModal } from "@/hooks/useModal";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import ModalConfirmarExclusao from "@/components/shared/ModalConfirmarExclusao";
 import ModalPrazo from "@/components/prazos/ModalPrazo";
 import ModalAndamento from "@/components/andamentos/ModalAndamento";
+import ModalLancamento from "@/components/lancamentos/ModalLancamento";
 
 import {
   ArrowLeft,
@@ -38,12 +45,28 @@ import {
   Hash,
   FileText,
   Clock,
+  Wallet,
 } from "lucide-react";
 
 function formatarData(data) {
   if (!data) return "—";
   return new Date(data).toLocaleDateString("pt-BR");
 }
+
+function formatarMoeda(valor) {
+  return Number(valor).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+const LABELS_TIPO = {
+  honorario: "Honorário",
+  custa: "Custa",
+  deposito: "Depósito",
+  reembolso: "Reembolso",
+  outro: "Outro",
+};
 
 const STATUS_CORES = {
   ativo: "default",
@@ -409,6 +432,186 @@ function TabAndamentos({ processoId }) {
   );
 }
 
+// ─── Sub-componente: financeiro ───────────────────────────────────────────────
+function TabFinanceiro({ processoId }) {
+  const [lancamentos, setLancamentos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+
+  const {
+    aberto,
+    itemEditando,
+    itemParaExcluir,
+    abrirNovo,
+    abrirEdicao,
+    fechar,
+    confirmarExclusao,
+    cancelarExclusao,
+  } = useModal();
+
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    try {
+      const { data } = await listarLancamentos({ processo_id: processoId });
+      setLancamentos(data);
+    } finally {
+      setCarregando(false);
+    }
+  }, [processoId]);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  const handleSalvar = async (dados) => {
+    const payload = { ...dados, processo_id: processoId };
+    if (itemEditando) {
+      await atualizarLancamento(itemEditando.id, payload);
+    } else {
+      await criarLancamento(payload);
+    }
+    await carregar();
+  };
+
+  const handleExcluir = async () => {
+    await deletarLancamento(itemParaExcluir.id);
+    cancelarExclusao();
+    await carregar();
+  };
+
+  const honorariosPagos = lancamentos
+    .filter((l) => l.tipo === "honorario" && l.data_pagamento)
+    .reduce((s, l) => s + Number(l.valor), 0);
+
+  const honorariosPendentes = lancamentos
+    .filter((l) => l.tipo === "honorario" && !l.data_pagamento)
+    .reduce((s, l) => s + Number(l.valor), 0);
+
+  const totalCustas = lancamentos
+    .filter((l) => l.tipo !== "honorario")
+    .reduce((s, l) => s + Number(l.valor), 0);
+
+  return (
+    <>
+      {/* Resumo */}
+      {!carregando && lancamentos.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 flex flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground">Honorários recebidos</span>
+            <span className="text-sm font-medium text-green-600 dark:text-green-400">
+              {formatarMoeda(honorariosPagos)}
+            </span>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 flex flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground">Honorários pendentes</span>
+            <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
+              {formatarMoeda(honorariosPendentes)}
+            </span>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 flex flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground">Total de custas</span>
+            <span className="text-sm font-medium">{formatarMoeda(totalCustas)}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm text-muted-foreground">
+          {lancamentos.length}{" "}
+          {lancamentos.length === 1 ? "lançamento" : "lançamentos"}
+        </span>
+        <Button size="sm" onClick={abrirNovo}>
+          <Plus /> Novo lançamento
+        </Button>
+      </div>
+
+      <div className="rounded-lg border border-border overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-muted-foreground">
+            <tr>
+              <th className="text-left px-4 py-2.5 font-medium">Descrição</th>
+              <th className="text-left px-4 py-2.5 font-medium">Tipo</th>
+              <th className="text-left px-4 py-2.5 font-medium">Valor</th>
+              <th className="text-left px-4 py-2.5 font-medium">Vencimento</th>
+              <th className="text-left px-4 py-2.5 font-medium">Status</th>
+              <th className="px-4 py-2.5" />
+            </tr>
+          </thead>
+          <tbody>
+            {carregando && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <Loader2 className="animate-spin mx-auto size-4" />
+                </td>
+              </tr>
+            )}
+            {!carregando && lancamentos.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                  Nenhum lançamento cadastrado.
+                </td>
+              </tr>
+            )}
+            {!carregando &&
+              lancamentos.map((l) => (
+                <tr
+                  key={l.id}
+                  className="border-t border-border hover:bg-muted/30 transition-colors"
+                >
+                  <td className="px-4 py-3">{l.descricao}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant="secondary">
+                      {LABELS_TIPO[l.tipo] ?? l.tipo}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 tabular-nums whitespace-nowrap">
+                    {formatarMoeda(l.valor)}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                    {formatarData(l.data_vencimento)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {l.data_pagamento ? (
+                      <Badge variant="secondary">Pago</Badge>
+                    ) : (
+                      <Badge variant="outline">Pendente</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => abrirEdicao(l)}>
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => confirmarExclusao(l)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+
+      <ModalLancamento
+        aberto={aberto}
+        onFechar={fechar}
+        lancamentoEditando={itemEditando}
+        onSalvar={handleSalvar}
+      />
+      <ModalConfirmarExclusao
+        item={itemParaExcluir}
+        onConfirmar={handleExcluir}
+        onCancelar={cancelarExclusao}
+      />
+    </>
+  );
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function DetalhesProcesso() {
   const { id } = useParams();
@@ -485,6 +688,10 @@ export default function DetalhesProcesso() {
             <Clock />
             Andamentos
           </TabsTrigger>
+          <TabsTrigger value="financeiro">
+            <Wallet />
+            Financeiro
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="mt-4">
@@ -497,6 +704,10 @@ export default function DetalhesProcesso() {
 
         <TabsContent value="andamentos" className="mt-4">
           <TabAndamentos processoId={Number(id)} />
+        </TabsContent>
+
+        <TabsContent value="financeiro" className="mt-4">
+          <TabFinanceiro processoId={Number(id)} />
         </TabsContent>
       </Tabs>
     </div>

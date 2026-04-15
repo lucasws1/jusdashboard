@@ -24,10 +24,12 @@ const clientesRouter = require("./src/routes/clientes");
 const processosRouter = require("./src/routes/processos");
 const andamentosRouter = require("./src/routes/andamentos");
 const prazosRouter = require("./src/routes/prazos");
+const lancamentosRouter = require("./src/routes/lancamentos");
 app.use("/api/clientes", clientesRouter);
 app.use("/api/processos", processosRouter);
 app.use("/api/andamentos", andamentosRouter);
 app.use("/api/prazos", prazosRouter);
+app.use("/api/lancamentos", lancamentosRouter);
 
 // Handler de erros genéricos
 app.use((err, _req, res, _next) => {

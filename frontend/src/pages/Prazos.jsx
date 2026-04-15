@@ -228,7 +228,9 @@ export default function Prazos() {
               <Table2 className="size-4" />
             </Button>
             <Button
-              variant={modoVisualizacao === "calendario" ? "secondary" : "ghost"}
+              variant={
+                modoVisualizacao === "calendario" ? "secondary" : "ghost"
+              }
               size="icon-sm"
               className="rounded-none border-0 border-l border-border"
               onClick={() => setModoVisualizacao("calendario")}
@@ -249,9 +251,17 @@ export default function Prazos() {
               <DropdownMenuGroup>
                 <DropdownMenuItem
                   onClick={() => {
-                    const cabecalhos = ["Processo n.", "Descrição", "Tipo", "Data/Prazo", "Status"];
+                    const cabecalhos = [
+                      "Processo n.",
+                      "Descrição",
+                      "Tipo",
+                      "Data/Prazo",
+                      "Status",
+                    ];
                     const linhas = prazos.map((p) => {
-                      const proc = processos.find((pr) => pr.id === p.processo_id);
+                      const proc = processos.find(
+                        (pr) => pr.id === p.processo_id,
+                      );
                       return [
                         proc?.numero_processo || `#${p.processo_id}`,
                         p.descricao || "—",
@@ -264,13 +274,21 @@ export default function Prazos() {
                   }}
                 >
                   <FileText className="size-4" />
-                  Exportar PDF
+                  PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
-                    const cabecalhos = ["Processo n.", "Descrição", "Tipo", "Data/Prazo", "Status"];
+                    const cabecalhos = [
+                      "Processo n.",
+                      "Descrição",
+                      "Tipo",
+                      "Data/Prazo",
+                      "Status",
+                    ];
                     const linhas = prazos.map((p) => {
-                      const proc = processos.find((pr) => pr.id === p.processo_id);
+                      const proc = processos.find(
+                        (pr) => pr.id === p.processo_id,
+                      );
                       return [
                         proc?.numero_processo || `#${p.processo_id}`,
                         p.descricao || "",
@@ -283,7 +301,7 @@ export default function Prazos() {
                   }}
                 >
                   <Table2 className="size-4" />
-                  Exportar Excel
+                  Excel
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -411,126 +429,130 @@ export default function Prazos() {
         <PrazosCalendario
           prazos={prazos}
           processos={processos}
-          onEventClick={abrirEdicao}
+          onEventClick={(prazo) => navigate(`/processos/${prazo.processo_id}`)}
         />
       )}
 
       {/* Tabela */}
       {modoVisualizacao === "tabela" && (
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-muted-foreground">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium">Processo n.</th>
-              <th className="text-left px-4 py-3 font-medium">Descrição</th>
-              <th className="text-left px-4 py-3 font-medium">Tipo</th>
-              <th className="text-left px-4 py-3 font-medium">Data / Prazo</th>
-              <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {carregando && (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-muted-foreground">
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-10 text-center text-muted-foreground"
-                >
-                  <Loader2 className="animate-spin mx-auto size-5" />
-                </td>
+                <th className="text-left px-4 py-3 font-medium">Processo n.</th>
+                <th className="text-left px-4 py-3 font-medium">Descrição</th>
+                <th className="text-left px-4 py-3 font-medium">Tipo</th>
+                <th className="text-left px-4 py-3 font-medium">
+                  Data / Prazo
+                </th>
+                <th className="text-left px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3" />
               </tr>
-            )}
-
-            {!carregando && erroLista && (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-10 text-center text-destructive"
-                >
-                  {erroLista}
-                </td>
-              </tr>
-            )}
-
-            {!carregando && !erroLista && prazos.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <UserX className="size-8" />
-                    <span className="text-sm">
-                      {temFiltroAtivo
-                        ? "Nenhum prazo encontrado para os filtros aplicados."
-                        : "Nenhum prazo cadastrado ainda."}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            )}
-
-            {!carregando &&
-              prazos.map((p) => {
-                const proc = processos.find((pr) => pr.id === p.processo_id);
-                return (
-                  <tr
-                    key={p.id}
-                    className="border-t border-border hover:bg-muted/30 transition-colors"
+            </thead>
+            <tbody>
+              {carregando && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-10 text-center text-muted-foreground"
                   >
-                    <td className="px-4 py-3 font-medium">
-                      <Button
-                        variant="link"
-                        className="h-auto p-0 font-medium"
-                        onClick={() => navigate(`/processos/${p.processo_id}`)}
-                      >
-                        {proc?.numero_processo || `#${p.processo_id}`}
-                      </Button>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {p.descricao}
-                    </td>
-                    <td className="px-4 py-3">
-                      {p.tipo ? (
-                        <Badge variant="secondary">
-                          {p.tipo.charAt(0).toUpperCase() + p.tipo.slice(1)}
+                    <Loader2 className="animate-spin mx-auto size-5" />
+                  </td>
+                </tr>
+              )}
+
+              {!carregando && erroLista && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-10 text-center text-destructive"
+                  >
+                    {erroLista}
+                  </td>
+                </tr>
+              )}
+
+              {!carregando && !erroLista && prazos.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <UserX className="size-8" />
+                      <span className="text-sm">
+                        {temFiltroAtivo
+                          ? "Nenhum prazo encontrado para os filtros aplicados."
+                          : "Nenhum prazo cadastrado ainda."}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!carregando &&
+                prazos.map((p) => {
+                  const proc = processos.find((pr) => pr.id === p.processo_id);
+                  return (
+                    <tr
+                      key={p.id}
+                      className="border-t border-border hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium">
+                        <Button
+                          variant="link"
+                          className="h-auto p-0 font-medium"
+                          onClick={() =>
+                            navigate(`/processos/${p.processo_id}`)
+                          }
+                        >
+                          {proc?.numero_processo || `#${p.processo_id}`}
+                        </Button>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {p.descricao}
+                      </td>
+                      <td className="px-4 py-3">
+                        {p.tipo ? (
+                          <Badge variant="secondary">
+                            {p.tipo.charAt(0).toUpperCase() + p.tipo.slice(1)}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                        {new Date(p.data_prazo).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={STATUS_CORES[p.status] ?? "outline"}>
+                          {p.status}
                         </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {new Date(p.data_prazo).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={STATUS_CORES[p.status] ?? "outline"}>
-                        {p.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => abrirEdicao(p)}
-                          title="Editar"
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => confirmarExclusao(p)}
-                          title="Excluir"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-          </tbody>
-        </table>
-      </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => abrirEdicao(p)}
+                            title="Editar"
+                          >
+                            <Pencil />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => confirmarExclusao(p)}
+                            title="Excluir"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {modoVisualizacao === "tabela" && prazos.length > 0 && !carregando && (

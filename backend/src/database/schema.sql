@@ -68,9 +68,29 @@ CREATE TABLE IF NOT EXISTS prazos (
   CONSTRAINT fk_prazo_processo FOREIGN KEY (processo_id) REFERENCES processos(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 -- ------------------------------------------------------------
+-- LANCAMENTOS FINANCEIROS
+-- Honorários, custas, depósitos e reembolsos vinculados ao processo
+-- data_pagamento NULL = pendente; preenchido = pago
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS lancamentos_financeiros (
+  id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  processo_id     INT UNSIGNED NOT NULL,
+  tipo            ENUM('honorario', 'custa', 'deposito', 'reembolso', 'outro') NOT NULL,
+  descricao       VARCHAR(255) NOT NULL,
+  valor           DECIMAL(10,2) NOT NULL,
+  data_vencimento DATE NULL,
+  data_pagamento  DATE NULL,
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_lancamento_processo
+    FOREIGN KEY (processo_id) REFERENCES processos(id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+-- ------------------------------------------------------------
 -- Índices adicionais (FKs já criam índice em cliente_id e processo_id)
 -- Apenas índices que agregam valor extra são criados aqui
 -- ------------------------------------------------------------
 CREATE INDEX idx_processos_status ON processos (status);
 CREATE INDEX idx_andamentos_data ON andamentos (data_andamento);
 CREATE INDEX idx_prazos_data_status ON prazos (data_prazo, status);
+CREATE INDEX idx_lancamentos_processo ON lancamentos_financeiros (processo_id);
+CREATE INDEX idx_lancamentos_pagamento ON lancamentos_financeiros (data_pagamento);
